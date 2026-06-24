@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Search, Plus, ChevronRight } from "lucide-react";
-import { Input, Select } from "@/components/ui/input";
+import { Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Badge,
