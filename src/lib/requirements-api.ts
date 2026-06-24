@@ -1,11 +1,8 @@
-"use server";
-
-import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/client";
 import type { RequirementFormData } from "@/types/database";
 
 export async function createRequirement(data: RequirementFormData) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -14,7 +11,6 @@ export async function createRequirement(data: RequirementFormData) {
 
   let productId = data.product_id;
 
-  // 兼容用 code 传产品（如下拉兜底时）
   if (!productId.includes("-")) {
     const { data: product } = await supabase
       .from("products")
@@ -52,8 +48,6 @@ export async function createRequirement(data: RequirementFormData) {
   });
 
   if (error) return { error: error.message };
-
-  revalidatePath("/requirements");
   return { success: true };
 }
 
@@ -66,7 +60,7 @@ export async function updateRequirement(
     schedule_type?: string | null;
   }
 ) {
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const { error } = await supabase
     .from("requirements")
@@ -74,19 +68,14 @@ export async function updateRequirement(
     .eq("id", id);
 
   if (error) return { error: error.message };
-
-  revalidatePath("/requirements");
-  revalidatePath(`/requirements/${id}`);
   return { success: true };
 }
 
 export async function deleteRequirement(id: string) {
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const { error } = await supabase.from("requirements").delete().eq("id", id);
 
   if (error) return { error: error.message };
-
-  revalidatePath("/requirements");
   return { success: true };
 }

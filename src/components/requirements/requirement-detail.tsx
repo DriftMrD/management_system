@@ -12,7 +12,7 @@ import {
   ratStatusVariant,
   requirementStatusVariant,
 } from "@/components/ui/badge";
-import { updateRequirement, deleteRequirement } from "@/app/requirements/actions";
+import { updateRequirement, deleteRequirement } from "@/lib/requirements-api";
 import type { Product, Profile, Requirement } from "@/types/database";
 import {
   RAT_STATUS_LABELS,
@@ -189,7 +189,7 @@ export function RequirementDetail({
                   RAT 已通过，可录入各阶段排期时间
                 </p>
               </div>
-              <Link href={`/schedule/${requirement.id}`}>
+              <Link href={`/schedule/detail?id=${requirement.id}`}>
                 <Button>录入排期</Button>
               </Link>
             </div>
@@ -253,7 +253,7 @@ export function RequirementDetail({
               {loading ? "保存中..." : "保存评审结果"}
             </Button>
             {ratStatus === "passed" && scheduleType && (
-              <Link href={`/schedule/${requirement.id}`}>
+              <Link href={`/schedule/detail?id=${requirement.id}`}>
                 <Button variant="secondary">去排期</Button>
               </Link>
             )}

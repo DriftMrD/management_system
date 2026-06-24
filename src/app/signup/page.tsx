@@ -1,8 +1,10 @@
 import { SignupForm } from "./signup-form";
 import { ClipboardList } from "lucide-react";
+import { GuestGuard } from "@/components/auth/auth-guard";
 
 export default function SignupPage() {
   return (
+    <GuestGuard>
     <div
       className="min-h-screen flex items-center justify-center px-4"
       style={{ background: "linear-gradient(135deg, #e8eff6 0%, #d4e4f0 50%, #e8eff6 100%)" }}
@@ -40,5 +42,6 @@ export default function SignupPage() {
         </p>
       </div>
     </div>
+    </GuestGuard>
   );
 }

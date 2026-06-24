@@ -1,38 +1,58 @@
-import { AppShell } from "@/components/layout/app-shell";
+"use client";
+
+import { useEffect, useState } from "react";
+import { ProtectedPage } from "@/components/layout/protected-page";
 import { RequirementsList } from "@/components/requirements/requirements-list";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/client";
+import type { Product, Requirement } from "@/types/database";
 
-export default async function RequirementsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export default function RequirementsPage() {
+  const [requirements, setRequirements] = useState<
+    (Requirement & { products: Product | null })[]
+  >([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isPM, setIsPM] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user!.id)
-    .single();
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
 
-  const isPM = profile?.role === "project_manager";
+      const [{ data: profile }, { data: productList }, { data: reqList }] =
+        await Promise.all([
+          supabase.from("profiles").select("role").eq("id", user.id).single(),
+          supabase.from("products").select("*").order("name"),
+          supabase
+            .from("requirements")
+            .select("*, products(*)")
+            .order("created_at", { ascending: false }),
+        ]);
 
-  const { data: products } = await supabase
-    .from("products")
-    .select("*")
-    .order("name");
+      const prof = profile as { role: "product" | "project_manager" } | null;
+      setIsPM(prof?.role === "project_manager");
+      setProducts(productList || []);
+      setRequirements((reqList as (Requirement & { products: Product | null })[]) || []);
+      setLoading(false);
+    }
 
-  const { data: requirements } = await supabase
-    .from("requirements")
-    .select("*, products(*)")
-    .order("created_at", { ascending: false });
+    load();
+  }, []);
 
   return (
-    <AppShell>
-      <RequirementsList
-        requirements={requirements || []}
-        products={products || []}
-        isProjectManager={isPM}
-      />
-    </AppShell>
+    <ProtectedPage>
+      {loading ? (
+        <p className="text-sm text-[#7a96ae]">加载中...</p>
+      ) : (
+        <RequirementsList
+          requirements={requirements}
+          products={products}
+          isProjectManager={isPM}
+        />
+      )}
+    </ProtectedPage>
   );
 }

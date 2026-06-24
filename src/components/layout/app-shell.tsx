@@ -1,43 +1,50 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { USER_ROLE_LABELS } from "@/types/database";
+import { createClient } from "@/lib/supabase/client";
+import { USER_ROLE_LABELS, type Profile } from "@/types/database";
 import { LogoutButton } from "./logout-button";
 import { ClipboardList, Calendar, LayoutDashboard } from "lucide-react";
 
-export async function AppShell({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const [profile, setProfile] = useState<
+    (Profile & { products: { name: string } | null }) | null
+  >(null);
 
-  const { data: profile } = user
-    ? await supabase
+  useEffect(() => {
+    async function loadProfile() {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
         .from("profiles")
         .select("*, products(name)")
         .eq("id", user.id)
-        .single()
-    : { data: null };
+        .single();
+
+      if (data) setProfile(data);
+    }
+
+    loadProfile();
+  }, []);
 
   const isPM = profile?.role === "project_manager";
-  const productName =
-    profile && "products" in profile && profile.products
-      ? (profile.products as { name: string }).name
-      : null;
+  const productName = profile?.products?.name ?? null;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#e8eff6]">
-      {/* ── 顶部导航 ── */}
       <header className="sticky top-0 z-20">
-        {/* 毛玻璃效果 header */}
         <div
           className="bg-white/80 backdrop-blur-md border-b border-[#dde6ef]/60"
           style={{ boxShadow: "0 1px 0 0 rgb(90 140 180 / 0.08)" }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex h-14 items-center justify-between">
-              {/* 左侧：品牌 + 导航 */}
               <div className="flex items-center gap-6">
-                {/* Logo */}
                 <Link
                   href="/requirements"
                   className="flex items-center gap-2 group"
@@ -50,21 +57,25 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
                   </span>
                 </Link>
 
-                {/* 导航链接 */}
                 <nav className="hidden sm:flex items-center gap-0.5">
-                  <NavLink href="/requirements" icon={<ClipboardList className="w-3.5 h-3.5" />}>
+                  <NavLink
+                    href="/requirements"
+                    icon={<ClipboardList className="w-3.5 h-3.5" />}
+                  >
                     需求池
                   </NavLink>
                   <NavLink href="/schedule" icon={<Calendar className="w-3.5 h-3.5" />}>
                     {isPM ? "全部排期" : "产品排期"}
                   </NavLink>
-                  <NavLink href="/dashboard" icon={<LayoutDashboard className="w-3.5 h-3.5" />}>
+                  <NavLink
+                    href="/dashboard"
+                    icon={<LayoutDashboard className="w-3.5 h-3.5" />}
+                  >
                     概览
                   </NavLink>
                 </nav>
               </div>
 
-              {/* 右侧：用户信息 + 退出 */}
               <div className="flex items-center gap-3">
                 {profile && (
                   <div className="text-right hidden sm:block">
@@ -79,7 +90,9 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
                 )}
                 {profile && (
                   <div className="w-8 h-8 rounded-full bg-[#e8f3fb] flex items-center justify-center text-xs font-semibold text-[#5ba4d4] select-none">
-                    {(profile.full_name || profile.email || "?").charAt(0).toUpperCase()}
+                    {(profile.full_name || profile.email || "?")
+                      .charAt(0)
+                      .toUpperCase()}
                   </div>
                 )}
                 <LogoutButton />
@@ -89,7 +102,6 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* ── 主内容区 ── */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {children}
       </main>

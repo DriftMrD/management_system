@@ -1,7 +1,4 @@
-"use server";
-
-import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/client";
 import type { SchedulePhase, ScheduleType } from "@/types/database";
 
 export interface ScheduleTaskInput {
@@ -16,7 +13,7 @@ export async function saveScheduleTasks(
   scheduleType: ScheduleType,
   tasks: ScheduleTaskInput[]
 ) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -37,8 +34,5 @@ export async function saveScheduleTasks(
     .upsert(rows, { onConflict: "requirement_id,phase" });
 
   if (error) return { error: error.message };
-
-  revalidatePath(`/schedule/${requirementId}`);
-  revalidatePath("/schedule");
   return { success: true };
 }

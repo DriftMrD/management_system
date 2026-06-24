@@ -1,9 +1,10 @@
-import Link from "next/link";
 import { LoginForm } from "./login-form";
 import { ClipboardList } from "lucide-react";
+import { GuestGuard } from "@/components/auth/auth-guard";
 
 export default function LoginPage() {
   return (
+    <GuestGuard>
     <div
       className="min-h-screen flex items-center justify-center px-4"
       style={{ background: "linear-gradient(135deg, #e8eff6 0%, #d4e4f0 50%, #e8eff6 100%)" }}
@@ -42,5 +43,6 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+    </GuestGuard>
   );
 }

@@ -181,7 +181,7 @@ export function RequirementsList({
                   >
                     <td className="px-5 py-3.5">
                       <Link
-                        href={`/requirements/${req.id}`}
+                        href={`/requirements/detail?id=${req.id}`}
                         className="font-medium text-[#1a2332] hover:text-[#5ba4d4] transition-colors"
                       >
                         {req.title}

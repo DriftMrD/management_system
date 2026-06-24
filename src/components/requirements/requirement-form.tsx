@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Input, Textarea, Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { createRequirement } from "@/app/requirements/actions";
+import { createRequirement } from "@/lib/requirements-api";
 import { PRODUCT_OPTIONS } from "@/lib/products";
 import { createClient } from "@/lib/supabase/client";
 import type { Product, PriorityLevel } from "@/types/database";

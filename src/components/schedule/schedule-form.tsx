@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { saveScheduleTasks } from "@/app/schedule/actions";
+import { saveScheduleTasks } from "@/lib/schedule-api";
 import {
   SCHEDULE_PHASE_LABELS,
   type SchedulePhase,
