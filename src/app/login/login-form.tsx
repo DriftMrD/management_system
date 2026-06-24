@@ -20,8 +20,9 @@ export function LoginForm() {
     setLoading(true);
 
     const supabase = createClient();
+    const loginEmail = email.trim() === "admin" ? "admin@transsion.com" : email.trim();
     const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
+      email: loginEmail,
       password,
     });
 
@@ -56,14 +57,17 @@ export function LoginForm() {
         autoComplete="current-password"
       />
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+        <div className="flex items-start gap-2 text-sm text-[#e06060] bg-[#fdeaea] rounded-xl px-3.5 py-2.5">
+          <span className="mt-0.5 shrink-0">⚠</span>
+          <span>{error}</span>
+        </div>
       )}
-      <Button type="submit" className="w-full" disabled={loading}>
+      <Button type="submit" className="w-full mt-1" disabled={loading}>
         {loading ? "登录中..." : "登录"}
       </Button>
-      <p className="text-center text-sm text-muted">
+      <p className="text-center text-sm text-[#7a96ae]">
         还没有账号？{" "}
-        <Link href="/signup" className="text-primary hover:underline">
+        <Link href="/signup" className="text-[#5ba4d4] hover:text-[#4990c4] font-medium transition-colors">
           注册
         </Link>
       </p>

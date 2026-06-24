@@ -17,7 +17,7 @@ export function LogoutButton() {
 
   return (
     <Button variant="ghost" size="sm" onClick={handleLogout} title="退出登录">
-      <LogOut className="w-4 h-4" />
+      <LogOut className="w-3.5 h-3.5" />
     </Button>
   );
 }

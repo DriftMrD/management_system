@@ -1,13 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  /* ── 参考风格：柔和天蓝 + 米白卡片 + 淡蓝灰背景 ── */
+  --background: #e8eff6;
+  --foreground: #1a2332;
   --card: #ffffff;
-  --border: #e2e8f0;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --muted: #64748b;
+  --border: #dde6ef;
+  --border-light: #edf3f8;
+
+  /* 主色：天蓝 */
+  --primary: #5ba4d4;
+  --primary-hover: #4990c4;
+  --primary-light: #e8f3fb;
+  --primary-muted: #a8cfe8;
+
+  /* 点缀色 */
+  --accent-pink: #f9c5c5;
+  --accent-yellow: #fde8a8;
+  --accent-mint: #b8e8d8;
+  --accent-lavender: #c8c8f0;
+
+  /* 文字 */
+  --muted: #7a96ae;
+  --muted-light: #a0b4c4;
+
+  /* 状态色（柔和版） */
+  --success: #4db896;
+  --success-bg: #e8f8f2;
+  --warning: #e8a43c;
+  --warning-bg: #fef5e4;
+  --danger: #e06060;
+  --danger-bg: #fdeaea;
+  --info: #5ba4d4;
+  --info-bg: #e8f3fb;
+
+  /* 阴影 */
+  --shadow-xs: 0 1px 3px 0 rgb(90 140 180 / 0.08);
+  --shadow-sm: 0 2px 8px 0 rgb(90 140 180 / 0.10);
+  --shadow-md: 0 4px 16px 0 rgb(90 140 180 / 0.12);
+  --shadow-card: 0 2px 12px 0 rgb(90 140 180 / 0.10), 0 1px 3px 0 rgb(90 140 180 / 0.06);
 }
 
 @theme inline {
@@ -21,8 +52,28 @@
   --font-sans: var(--font-geist-sans);
 }
 
+/* ── 全局基础 ── */
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* ── 滚动条美化 ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--primary-muted);
+  border-radius: 999px;
+}
+
+/* ── 选中样式 ── */
+::selection {
+  background: var(--primary-light);
+  color: var(--primary);
 }

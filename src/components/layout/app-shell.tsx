@@ -25,43 +25,71 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       : null;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="bg-white border-b border-border sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-14 items-center justify-between">
-            <div className="flex items-center gap-8">
-              <Link href="/requirements" className="font-semibold text-foreground">
-                需求管理系统
-              </Link>
-              <nav className="hidden sm:flex items-center gap-1">
-                <NavLink href="/requirements" icon={<ClipboardList className="w-4 h-4" />}>
-                  需求池
-                </NavLink>
-                {isPM && (
-                  <NavLink href="/schedule" icon={<Calendar className="w-4 h-4" />}>
-                    全部排期
+    <div className="min-h-screen flex flex-col bg-[#e8eff6]">
+      {/* ── 顶部导航 ── */}
+      <header className="sticky top-0 z-20">
+        {/* 毛玻璃效果 header */}
+        <div
+          className="bg-white/80 backdrop-blur-md border-b border-[#dde6ef]/60"
+          style={{ boxShadow: "0 1px 0 0 rgb(90 140 180 / 0.08)" }}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex h-14 items-center justify-between">
+              {/* 左侧：品牌 + 导航 */}
+              <div className="flex items-center gap-6">
+                {/* Logo */}
+                <Link
+                  href="/requirements"
+                  className="flex items-center gap-2 group"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-[#5ba4d4] flex items-center justify-center shadow-[0_2px_6px_0_rgb(91_164_212/0.35)]">
+                    <ClipboardList className="w-3.5 h-3.5 text-white" />
+                  </div>
+                  <span className="font-semibold text-[#1a2332] text-sm group-hover:text-[#5ba4d4] transition-colors">
+                    需求管理系统
+                  </span>
+                </Link>
+
+                {/* 导航链接 */}
+                <nav className="hidden sm:flex items-center gap-0.5">
+                  <NavLink href="/requirements" icon={<ClipboardList className="w-3.5 h-3.5" />}>
+                    需求池
                   </NavLink>
+                  <NavLink href="/schedule" icon={<Calendar className="w-3.5 h-3.5" />}>
+                    {isPM ? "全部排期" : "产品排期"}
+                  </NavLink>
+                  <NavLink href="/dashboard" icon={<LayoutDashboard className="w-3.5 h-3.5" />}>
+                    概览
+                  </NavLink>
+                </nav>
+              </div>
+
+              {/* 右侧：用户信息 + 退出 */}
+              <div className="flex items-center gap-3">
+                {profile && (
+                  <div className="text-right hidden sm:block">
+                    <p className="text-xs font-medium text-[#1a2332] leading-tight">
+                      {profile.full_name || profile.email}
+                    </p>
+                    <p className="text-[11px] text-[#7a96ae] leading-tight mt-0.5">
+                      {USER_ROLE_LABELS[profile.role]}
+                      {productName && ` · ${productName}`}
+                    </p>
+                  </div>
                 )}
-                <NavLink href="/dashboard" icon={<LayoutDashboard className="w-4 h-4" />}>
-                  概览
-                </NavLink>
-              </nav>
-            </div>
-            <div className="flex items-center gap-4">
-              {profile && (
-                <div className="text-right hidden sm:block">
-                  <p className="text-sm font-medium">{profile.full_name || profile.email}</p>
-                  <p className="text-xs text-muted">
-                    {USER_ROLE_LABELS[profile.role]}
-                    {productName && ` · ${productName}`}
-                  </p>
-                </div>
-              )}
-              <LogoutButton />
+                {profile && (
+                  <div className="w-8 h-8 rounded-full bg-[#e8f3fb] flex items-center justify-center text-xs font-semibold text-[#5ba4d4] select-none">
+                    {(profile.full_name || profile.email || "?").charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <LogoutButton />
+              </div>
             </div>
           </div>
         </div>
       </header>
+
+      {/* ── 主内容区 ── */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {children}
       </main>
@@ -81,7 +109,7 @@ function NavLink({
   return (
     <Link
       href={href}
-      className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted rounded-md hover:bg-slate-100 hover:text-foreground transition-colors"
+      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#7a96ae] rounded-lg hover:bg-[#e8f3fb] hover:text-[#5ba4d4] transition-all duration-150"
     >
       {icon}
       {children}

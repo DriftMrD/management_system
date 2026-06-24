@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
-import type { Product } from "@/types/database";
+import { PRODUCT_OPTIONS } from "@/lib/products";
 
 export function SignupForm() {
   const router = useRouter();
@@ -14,25 +14,15 @@ export function SignupForm() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<"product" | "project_manager">("product");
-  const [productId, setProductId] = useState("");
-  const [products, setProducts] = useState<Product[]>([]);
+  const [productCode, setProductCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    async function loadProducts() {
-      const supabase = createClient();
-      const { data } = await supabase.from("products").select("*").order("name");
-      if (data) setProducts(data);
-    }
-    loadProducts();
-  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
-    if (role === "product" && !productId) {
+    if (role === "product" && !productCode) {
       setError("产品经理需要选择所属产品");
       return;
     }
@@ -55,12 +45,29 @@ export function SignupForm() {
     }
 
     if (authData.user) {
+      let productId: string | null = null;
+
+      if (role === "product") {
+        const { data: product, error: productError } = await supabase
+          .from("products")
+          .select("id")
+          .eq("code", productCode)
+          .single();
+
+        if (productError || !product) {
+          setError("获取产品信息失败，请重试");
+          setLoading(false);
+          return;
+        }
+        productId = product.id;
+      }
+
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
           full_name: fullName,
           role,
-          product_id: role === "product" ? productId : null,
+          product_id: productId,
         })
         .eq("id", authData.user.id);
 
@@ -115,24 +122,27 @@ export function SignupForm() {
       {role === "product" && (
         <Select
           label="所属产品"
-          value={productId}
-          onChange={(e) => setProductId(e.target.value)}
+          value={productCode}
+          onChange={(e) => setProductCode(e.target.value)}
           required
           options={[
             { value: "", label: "请选择产品" },
-            ...products.map((p) => ({ value: p.id, label: p.name })),
+            ...PRODUCT_OPTIONS.map((p) => ({ value: p.code, label: p.name })),
           ]}
         />
       )}
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+        <div className="flex items-start gap-2 text-sm text-[#e06060] bg-[#fdeaea] rounded-xl px-3.5 py-2.5">
+          <span className="mt-0.5 shrink-0">⚠</span>
+          <span>{error}</span>
+        </div>
       )}
-      <Button type="submit" className="w-full" disabled={loading}>
+      <Button type="submit" className="w-full mt-1" disabled={loading}>
         {loading ? "注册中..." : "注册"}
       </Button>
-      <p className="text-center text-sm text-muted">
+      <p className="text-center text-sm text-[#7a96ae]">
         已有账号？{" "}
-        <Link href="/login" className="text-primary hover:underline">
+        <Link href="/login" className="text-[#5ba4d4] hover:text-[#4990c4] font-medium transition-colors">
           登录
         </Link>
       </p>

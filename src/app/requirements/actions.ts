@@ -12,10 +12,36 @@ export async function createRequirement(data: RequirementFormData) {
 
   if (!user) return { error: "未登录" };
 
+  let productId = data.product_id;
+
+  // 兼容用 code 传产品（如下拉兜底时）
+  if (!productId.includes("-")) {
+    const { data: product } = await supabase
+      .from("products")
+      .select("id")
+      .eq("code", productId)
+      .single();
+    if (product) productId = product.id;
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, product_id")
+    .eq("id", user.id)
+    .single();
+
+  if (
+    profile?.role === "product" &&
+    profile.product_id &&
+    productId !== profile.product_id
+  ) {
+    return { error: "只能为自己所属产品创建需求" };
+  }
+
   const { error } = await supabase.from("requirements").insert({
     title: data.title,
     description: data.description,
-    product_id: data.product_id,
+    product_id: productId,
     priority: data.priority,
     target_delivery_month: data.target_delivery_month || null,
     supplementary_notes: data.supplementary_notes,

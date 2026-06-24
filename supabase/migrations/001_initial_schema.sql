@@ -156,9 +156,9 @@ RETURNS UUID AS $$
   SELECT product_id FROM profiles WHERE id = auth.uid();
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
--- products: 所有登录用户可读
+-- products: 登录用户可读；未登录注册页也需要读取
 CREATE POLICY "products_select" ON products
-  FOR SELECT TO authenticated USING (true);
+  FOR SELECT USING (true);
 
 -- profiles: 可读自己；项管可读全部
 CREATE POLICY "profiles_select_own" ON profiles

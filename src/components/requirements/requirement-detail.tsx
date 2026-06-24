@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, Textarea } from "@/components/ui/input";
 import {
@@ -78,25 +78,34 @@ export function RequirementDetail({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/requirements">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="w-4 h-4" />
-            返回
-          </Button>
-        </Link>
-      </div>
+    <div className="space-y-5 max-w-3xl">
+      {/* 返回按钮 */}
+      <Link
+        href="/requirements"
+        className="inline-flex items-center gap-1.5 text-sm text-[#7a96ae] hover:text-[#5ba4d4] transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        返回需求池
+      </Link>
 
-      <div className="bg-white rounded-xl border border-border p-6 space-y-4">
+      {/* 主信息卡片 */}
+      <div
+        className="bg-white rounded-2xl p-6 space-y-5"
+        style={{ boxShadow: "0 2px 12px 0 rgb(90 140 180 / 0.10), 0 1px 3px 0 rgb(90 140 180 / 0.06)" }}
+      >
+        {/* 标题 + 徽章 */}
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold">{requirement.title}</h1>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold text-[#1a2332] leading-snug">
+              {requirement.title}
+            </h1>
             {requirement.sr_number && (
-              <p className="text-sm text-muted mt-1">{requirement.sr_number}</p>
+              <p className="text-xs text-[#a0b4c4] font-mono mt-1">
+                {requirement.sr_number}
+              </p>
             )}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 shrink-0">
             <Badge variant={priorityVariant(requirement.priority)}>
               {requirement.priority}
             </Badge>
@@ -114,51 +123,90 @@ export function RequirementDetail({
           </div>
         </div>
 
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div>
-            <dt className="text-muted">所属产品</dt>
-            <dd className="font-medium mt-0.5">{requirement.products?.name}</dd>
-          </div>
-          <div>
-            <dt className="text-muted">目标交付月</dt>
-            <dd className="font-medium mt-0.5">
-              {requirement.target_delivery_month || "未设定"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted">数分</dt>
-            <dd className="font-medium mt-0.5">
-              {requirement.needs_data_analysis ? "需要" : "不需要"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted">创建时间</dt>
-            <dd className="font-medium mt-0.5">
-              {new Date(requirement.created_at).toLocaleDateString("zh-CN")}
-            </dd>
-          </div>
+        {/* 元信息网格 */}
+        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <MetaItem label="所属产品" value={requirement.products?.name || "—"} />
+          <MetaItem
+            label="目标交付月"
+            value={requirement.target_delivery_month || "未设定"}
+          />
+          <MetaItem
+            label="数分需求"
+            value={requirement.needs_data_analysis ? "需要" : "不需要"}
+            highlight={requirement.needs_data_analysis}
+          />
+          <MetaItem
+            label="创建时间"
+            value={new Date(requirement.created_at).toLocaleDateString("zh-CN")}
+          />
         </dl>
 
+        {/* 分割线 */}
+        {(requirement.description || requirement.supplementary_notes) && (
+          <div className="border-t border-[#f0f4f8]" />
+        )}
+
+        {/* 详细说明 */}
         {requirement.description && (
           <div>
-            <h3 className="text-sm text-muted mb-1">详细说明</h3>
-            <p className="text-sm whitespace-pre-wrap">{requirement.description}</p>
+            <h3 className="text-xs font-semibold text-[#a0b4c4] uppercase tracking-wider mb-2">
+              详细说明
+            </h3>
+            <p className="text-sm text-[#3a4f60] whitespace-pre-wrap leading-relaxed bg-[#f8fbfd] rounded-xl px-4 py-3 border border-[#edf3f8]">
+              {requirement.description}
+            </p>
           </div>
         )}
 
+        {/* 补充说明 */}
         {requirement.supplementary_notes && (
           <div>
-            <h3 className="text-sm text-muted mb-1">补充说明</h3>
-            <p className="text-sm whitespace-pre-wrap">
+            <h3 className="text-xs font-semibold text-[#a0b4c4] uppercase tracking-wider mb-2">
+              补充说明
+            </h3>
+            <p className="text-sm text-[#3a4f60] whitespace-pre-wrap leading-relaxed bg-[#f8fbfd] rounded-xl px-4 py-3 border border-[#edf3f8]">
               {requirement.supplementary_notes}
             </p>
           </div>
         )}
       </div>
 
+      {/* 排期入口（产品经理，RAT 已通过且已设排期类型） */}
+      {!isProjectManager &&
+        requirement.rat_status === "passed" &&
+        requirement.schedule_type && (
+          <div
+            className="bg-white rounded-2xl p-6"
+            style={{
+              boxShadow:
+                "0 2px 12px 0 rgb(90 140 180 / 0.10), 0 1px 3px 0 rgb(90 140 180 / 0.06)",
+            }}
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="font-semibold text-[#1a2332]">项目排期</h2>
+                <p className="text-sm text-[#7a96ae] mt-1">
+                  RAT 已通过，可录入各阶段排期时间
+                </p>
+              </div>
+              <Link href={`/schedule/${requirement.id}`}>
+                <Button>录入排期</Button>
+              </Link>
+            </div>
+          </div>
+        )}
+
+      {/* RAT 评审卡片（仅项管） */}
       {isProjectManager && (
-        <div className="bg-white rounded-xl border border-border p-6 space-y-4">
-          <h2 className="font-semibold">RAT 评审（项管）</h2>
+        <div
+          className="bg-white rounded-2xl p-6 space-y-4"
+          style={{ boxShadow: "0 2px 12px 0 rgb(90 140 180 / 0.10), 0 1px 3px 0 rgb(90 140 180 / 0.06)" }}
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-5 rounded-full bg-[#5ba4d4]" />
+            <h2 className="font-semibold text-[#1a2332]">RAT 评审（项管）</h2>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
               label="RAT 状态"
@@ -185,17 +233,21 @@ export function RequirementDetail({
               />
             )}
           </div>
+
           <Textarea
             label="RAT 备注"
             value={ratNotes}
             onChange={(e) => setRatNotes(e.target.value)}
             placeholder="评审意见、通过条件等"
           />
+
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
-              {error}
-            </p>
+            <div className="flex items-start gap-2 text-sm text-[#e06060] bg-[#fdeaea] rounded-xl px-3.5 py-2.5">
+              <span className="mt-0.5 shrink-0">⚠</span>
+              <span>{error}</span>
+            </div>
           )}
+
           <div className="flex gap-3">
             <Button onClick={handleRatUpdate} disabled={loading}>
               {loading ? "保存中..." : "保存评审结果"}
@@ -209,13 +261,41 @@ export function RequirementDetail({
         </div>
       )}
 
+      {/* 删除操作（仅项管） */}
       {isProjectManager && (
         <div className="flex justify-end">
-          <Button variant="danger" size="sm" onClick={handleDelete}>
+          <button
+            onClick={handleDelete}
+            className="inline-flex items-center gap-1.5 text-sm text-[#a0b4c4] hover:text-[#e06060] transition-colors py-1.5 px-3 rounded-xl hover:bg-[#fdeaea]"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
             删除需求
-          </Button>
+          </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function MetaItem({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div className="bg-[#f8fbfd] rounded-xl px-3.5 py-3 border border-[#edf3f8]">
+      <dt className="text-xs text-[#a0b4c4] font-medium mb-1">{label}</dt>
+      <dd
+        className={`text-sm font-semibold ${
+          highlight ? "text-[#4db896]" : "text-[#1a2332]"
+        }`}
+      >
+        {value}
+      </dd>
     </div>
   );
 }
