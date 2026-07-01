@@ -1,21 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, Plus, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, Plus, Pencil, Eye } from "lucide-react";
 import { Select } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { updateRequirement } from "@/lib/requirements-api";
+import { BadgeSelect } from "@/components/ui/badge-select";
 import {
   Badge,
   priorityVariant,
-  ratStatusVariant,
+  requirementSourceVariant,
   requirementStatusVariant,
+  scheduleTypeVariant,
 } from "@/components/ui/badge";
-import type { Product, Requirement } from "@/types/database";
+import type {
+  Product,
+  PriorityLevel,
+  Requirement,
+  RequirementSource,
+  RequirementStatus,
+  ScheduleType,
+} from "@/types/database";
 import {
-  RAT_STATUS_LABELS,
   REQUIREMENT_STATUS_LABELS,
+  REQUIREMENT_SOURCE_LABELS,
   PRIORITY_LABELS,
+  SCHEDULE_TYPE_LABELS,
 } from "@/types/database";
 
 interface RequirementsListProps {
@@ -29,13 +41,19 @@ export function RequirementsList({
   products,
   isProjectManager,
 }: RequirementsListProps) {
+  const router = useRouter();
+  const [items, setItems] = useState(requirements);
   const [search, setSearch] = useState("");
   const [productFilter, setProductFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
-  const [ratFilter, setRatFilter] = useState("");
+  const [savingCell, setSavingCell] = useState<string | null>(null);
 
-  const filtered = requirements.filter((req) => {
+  useEffect(() => {
+    setItems(requirements);
+  }, [requirements]);
+
+  const filtered = items.filter((req) => {
     const q = search.toLowerCase();
     const matchSearch =
       !q ||
@@ -46,13 +64,44 @@ export function RequirementsList({
     const matchProduct = !productFilter || req.product_id === productFilter;
     const matchStatus = !statusFilter || req.status === statusFilter;
     const matchPriority = !priorityFilter || req.priority === priorityFilter;
-    const matchRat = !ratFilter || req.rat_status === ratFilter;
-    return matchSearch && matchProduct && matchStatus && matchPriority && matchRat;
+    return matchSearch && matchProduct && matchStatus && matchPriority;
   });
+
+  async function handleFieldChange(
+    id: string,
+    field: "priority" | "status" | "schedule_type" | "source",
+    value:
+      | PriorityLevel
+      | RequirementStatus
+      | ScheduleType
+      | RequirementSource
+      | null
+  ) {
+    setSavingCell(`${id}:${field}`);
+    const payload =
+      field === "schedule_type" || field === "source"
+        ? { [field]: value || null }
+        : { [field]: value };
+    const result = await updateRequirement(id, payload);
+    setSavingCell(null);
+
+    if (result.error) {
+      alert(result.error);
+      return;
+    }
+
+    setItems((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, [field]: value || null } : r))
+    );
+    router.refresh();
+  }
+
+  function isSaving(id: string, field: string) {
+    return savingCell === `${id}:${field}`;
+  }
 
   return (
     <div className="space-y-4">
-      {/* 页面标题 + 操作 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-[#1a2332]">需求池</h1>
@@ -69,12 +118,10 @@ export function RequirementsList({
         </Link>
       </div>
 
-      {/* 搜索 + 筛选卡片 */}
       <div
         className="bg-white rounded-2xl p-4 space-y-3"
         style={{ boxShadow: "0 2px 12px 0 rgb(90 140 180 / 0.08), 0 1px 3px 0 rgb(90 140 180 / 0.05)" }}
       >
-        {/* 搜索框 */}
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a0b4c4]" />
           <input
@@ -86,12 +133,11 @@ export function RequirementsList({
           />
         </div>
 
-        {/* 筛选器 */}
         <div
           className={`grid gap-3 ${
             isProjectManager
-              ? "grid-cols-2 sm:grid-cols-4"
-              : "grid-cols-2 sm:grid-cols-3"
+              ? "grid-cols-2 sm:grid-cols-3"
+              : "grid-cols-2 sm:grid-cols-2"
           }`}
         >
           {isProjectManager && (
@@ -126,21 +172,9 @@ export function RequirementsList({
               })),
             ]}
           />
-          <Select
-            value={ratFilter}
-            onChange={(e) => setRatFilter(e.target.value)}
-            options={[
-              { value: "", label: "RAT 状态" },
-              ...Object.entries(RAT_STATUS_LABELS).map(([v, l]) => ({
-                value: v,
-                label: l,
-              })),
-            ]}
-          />
         </div>
       </div>
 
-      {/* 需求列表卡片 */}
       <div
         className="bg-white rounded-2xl overflow-hidden"
         style={{ boxShadow: "0 2px 12px 0 rgb(90 140 180 / 0.08), 0 1px 3px 0 rgb(90 140 180 / 0.05)" }}
@@ -167,10 +201,13 @@ export function RequirementsList({
                   )}
                   <th className="px-5 py-3.5 font-medium text-[#7a96ae] text-left">优先级</th>
                   <th className="px-5 py-3.5 font-medium text-[#7a96ae] text-left">进展</th>
-                  <th className="px-5 py-3.5 font-medium text-[#7a96ae] text-left">RAT</th>
-                  <th className="px-5 py-3.5 font-medium text-[#7a96ae] text-left">目标交付</th>
-                  <th className="px-5 py-3.5 font-medium text-[#7a96ae] text-left">数分</th>
-                  <th className="px-2 py-3.5 w-8" />
+                  <th className="px-5 py-3.5 font-medium text-[#7a96ae] text-left min-w-[100px]">
+                    预期落地
+                  </th>
+                  <th className="px-5 py-3.5 font-medium text-[#7a96ae] text-left min-w-[100px]">
+                    需求来源
+                  </th>
+                  <th className="px-5 py-3.5 font-medium text-[#7a96ae] text-right">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f0f4f8]">
@@ -198,34 +235,92 @@ export function RequirementsList({
                       </td>
                     )}
                     <td className="px-5 py-3.5">
-                      <Badge variant={priorityVariant(req.priority)}>
-                        {req.priority}
-                      </Badge>
+                      <BadgeSelect
+                        value={req.priority}
+                        disabled={isSaving(req.id, "priority")}
+                        variant={priorityVariant(req.priority)}
+                        options={Object.entries(PRIORITY_LABELS).map(([v, l]) => ({
+                          value: v as PriorityLevel,
+                          label: l,
+                        }))}
+                        onChange={(priority) =>
+                          handleFieldChange(req.id, "priority", priority)
+                        }
+                      />
                     </td>
                     <td className="px-5 py-3.5">
-                      <Badge variant={requirementStatusVariant(req.status)}>
-                        {REQUIREMENT_STATUS_LABELS[req.status]}
-                      </Badge>
+                      <BadgeSelect
+                        value={req.status}
+                        disabled={isSaving(req.id, "status")}
+                        variant={requirementStatusVariant(req.status)}
+                        options={Object.entries(REQUIREMENT_STATUS_LABELS).map(
+                          ([v, l]) => ({
+                            value: v as RequirementStatus,
+                            label: l,
+                          })
+                        )}
+                        onChange={(status) =>
+                          handleFieldChange(req.id, "status", status)
+                        }
+                      />
                     </td>
                     <td className="px-5 py-3.5">
-                      <Badge variant={ratStatusVariant(req.rat_status)}>
-                        {RAT_STATUS_LABELS[req.rat_status]}
-                      </Badge>
-                    </td>
-                    <td className="px-5 py-3.5 text-[#7a96ae] text-sm">
-                      {req.target_delivery_month || (
-                        <span className="text-[#c0cdd8]">—</span>
-                      )}
+                      <BadgeSelect
+                        value={req.schedule_type || ""}
+                        disabled={isSaving(req.id, "schedule_type")}
+                        variant={scheduleTypeVariant(req.schedule_type)}
+                        options={[
+                          { value: "", label: "未设定" },
+                          ...Object.entries(SCHEDULE_TYPE_LABELS).map(([v, l]) => ({
+                            value: v as ScheduleType,
+                            label: l,
+                          })),
+                        ]}
+                        onChange={(scheduleType) =>
+                          handleFieldChange(
+                            req.id,
+                            "schedule_type",
+                            scheduleType || null
+                          )
+                        }
+                      />
                     </td>
                     <td className="px-5 py-3.5">
-                      {req.needs_data_analysis ? (
-                        <span className="text-[#4db896] text-xs font-medium">是</span>
-                      ) : (
-                        <span className="text-[#c0cdd8] text-xs">否</span>
-                      )}
+                      <BadgeSelect
+                        value={req.source || ""}
+                        disabled={isSaving(req.id, "source")}
+                        variant={requirementSourceVariant(req.source)}
+                        options={[
+                          { value: "", label: "未设定" },
+                          ...Object.entries(REQUIREMENT_SOURCE_LABELS).map(
+                            ([v, l]) => ({
+                              value: v as RequirementSource,
+                              label: l,
+                            })
+                          ),
+                        ]}
+                        onChange={(source) =>
+                          handleFieldChange(req.id, "source", source || null)
+                        }
+                      />
                     </td>
-                    <td className="px-2 py-3.5">
-                      <ChevronRight className="w-4 h-4 text-[#c0cdd8] group-hover:text-[#5ba4d4] transition-colors" />
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center justify-end gap-1">
+                        <Link
+                          href={`/requirements/detail?id=${req.id}`}
+                          title="查看"
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[#7a96ae] hover:text-[#5ba4d4] hover:bg-[#e8f3fb] transition-colors"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Link>
+                        <Link
+                          href={`/requirements/edit?id=${req.id}&from=list`}
+                          title="编辑"
+                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[#7a96ae] hover:text-[#5ba4d4] hover:bg-[#e8f3fb] transition-colors"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { USER_ROLE_LABELS, type Profile } from "@/types/database";
 import { LogoutButton } from "./logout-button";
-import { ClipboardList, Calendar, LayoutDashboard } from "lucide-react";
+import { ClipboardList, LayoutDashboard, GanttChart } from "lucide-react";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<
@@ -32,7 +32,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     loadProfile();
   }, []);
 
-  const isPM = profile?.role === "project_manager";
   const productName = profile?.products?.name ?? null;
 
   return (
@@ -64,8 +63,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     需求池
                   </NavLink>
-                  <NavLink href="/schedule" icon={<Calendar className="w-3.5 h-3.5" />}>
-                    {isPM ? "全部排期" : "产品排期"}
+                  <NavLink href="/schedule/gantt" icon={<GanttChart className="w-3.5 h-3.5" />}>
+                    甘特图
                   </NavLink>
                   <NavLink
                     href="/dashboard"

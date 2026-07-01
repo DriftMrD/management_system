@@ -77,3 +77,22 @@ body {
   background: var(--primary-light);
   color: var(--primary);
 }
+
+/* ── 甘特图：四向滚动 + 固定表头/侧栏 ── */
+.gantt-scroll {
+  overscroll-behavior: contain;
+}
+.gantt-sticky-corner,
+.gantt-sticky-header,
+.gantt-sticky-label {
+  box-shadow: 0 0 0 1px transparent;
+}
+.gantt-sticky-corner {
+  box-shadow: 2px 2px 6px rgb(90 140 180 / 0.08);
+}
+.gantt-sticky-header {
+  box-shadow: 0 2px 6px rgb(90 140 180 / 0.06);
+}
+.gantt-sticky-label {
+  box-shadow: 2px 0 6px rgb(90 140 180 / 0.05);
+}

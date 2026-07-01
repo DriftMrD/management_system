@@ -1,11 +1,11 @@
 export type UserRole = "product" | "project_manager";
 
-export type RatStatus = "not_reviewed" | "passed" | "not_applicable";
-
 export type RequirementStatus =
   | "not_started"
   | "in_progress"
+  | "reviewed"
   | "scheduled"
+  | "in_development"
   | "completed"
   | "cancelled";
 
@@ -20,6 +20,12 @@ export type SchedulePhase =
   | "development"
   | "testing"
   | "acceptance";
+
+export type RequirementSource =
+  | "other_department"
+  | "site"
+  | "user"
+  | "internal_planning";
 
 export interface Product {
   id: string;
@@ -53,11 +59,13 @@ export interface Requirement {
   status: RequirementStatus;
   schedule_type: ScheduleType | null;
   target_delivery_month: string | null;
-  rat_status: RatStatus;
-  rat_notes: string;
   supplementary_notes: string;
   needs_data_analysis: boolean;
   related_files: RelatedFile[];
+  source: RequirementSource | null;
+  ai_prd_url: string;
+  ai_tracking_url: string;
+  ai_demo_url: string;
   product_manager_id: string | null;
   created_by: string | null;
   created_at: string;
@@ -74,18 +82,19 @@ export interface RequirementFormData {
   supplementary_notes: string;
   needs_data_analysis: boolean;
   sr_number: string;
+  source: RequirementSource | "" | null;
+  ai_prd_url: string;
+  ai_tracking_url: string;
+  ai_demo_url: string;
+  schedule_type?: ScheduleType | "" | null;
 }
-
-export const RAT_STATUS_LABELS: Record<RatStatus, string> = {
-  not_reviewed: "还未评审",
-  passed: "通过",
-  not_applicable: "不涉及",
-};
 
 export const REQUIREMENT_STATUS_LABELS: Record<RequirementStatus, string> = {
   not_started: "未启动",
   in_progress: "进行中",
+  reviewed: "已评审",
   scheduled: "已排期",
+  in_development: "开发中",
   completed: "已完成",
   cancelled: "已取消",
 };
@@ -113,4 +122,11 @@ export const SCHEDULE_PHASE_LABELS: Record<SchedulePhase, string> = {
   development: "开发",
   testing: "测试",
   acceptance: "产品/UI/UX验收",
+};
+
+export const REQUIREMENT_SOURCE_LABELS: Record<RequirementSource, string> = {
+  other_department: "其他部门",
+  site: "站点",
+  user: "用户",
+  internal_planning: "内部规划",
 };

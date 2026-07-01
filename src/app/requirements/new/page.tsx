@@ -54,7 +54,7 @@ export default function NewRequirementPage() {
 
   return (
     <ProtectedPage>
-      <div className="max-w-2xl space-y-5">
+      <div className="space-y-5 w-full">
         <Link
           href="/requirements"
           className="inline-flex items-center gap-1.5 text-sm text-[#7a96ae] hover:text-[#5ba4d4] transition-colors"

@@ -71,16 +71,25 @@ export interface Database {
           status:
             | "not_started"
             | "in_progress"
+            | "reviewed"
             | "scheduled"
+            | "in_development"
             | "completed"
             | "cancelled";
           schedule_type: "tos" | "agile" | null;
           target_delivery_month: string | null;
-          rat_status: "not_reviewed" | "passed" | "not_applicable";
-          rat_notes: string;
           supplementary_notes: string;
           needs_data_analysis: boolean;
           related_files: Json;
+          source:
+            | "other_department"
+            | "site"
+            | "user"
+            | "internal_planning"
+            | null;
+          ai_prd_url: string;
+          ai_tracking_url: string;
+          ai_demo_url: string;
           product_manager_id: string | null;
           created_by: string | null;
           created_at: string;
@@ -96,16 +105,25 @@ export interface Database {
           status?:
             | "not_started"
             | "in_progress"
+            | "reviewed"
             | "scheduled"
+            | "in_development"
             | "completed"
             | "cancelled";
           schedule_type?: "tos" | "agile" | null;
           target_delivery_month?: string | null;
-          rat_status?: "not_reviewed" | "passed" | "not_applicable";
-          rat_notes?: string;
           supplementary_notes?: string;
           needs_data_analysis?: boolean;
           related_files?: Json;
+          source?:
+            | "other_department"
+            | "site"
+            | "user"
+            | "internal_planning"
+            | null;
+          ai_prd_url?: string;
+          ai_tracking_url?: string;
+          ai_demo_url?: string;
           product_manager_id?: string | null;
           created_by?: string | null;
           created_at?: string;
@@ -121,16 +139,25 @@ export interface Database {
           status?:
             | "not_started"
             | "in_progress"
+            | "reviewed"
             | "scheduled"
+            | "in_development"
             | "completed"
             | "cancelled";
           schedule_type?: "tos" | "agile" | null;
           target_delivery_month?: string | null;
-          rat_status?: "not_reviewed" | "passed" | "not_applicable";
-          rat_notes?: string;
           supplementary_notes?: string;
           needs_data_analysis?: boolean;
           related_files?: Json;
+          source?:
+            | "other_department"
+            | "site"
+            | "user"
+            | "internal_planning"
+            | null;
+          ai_prd_url?: string;
+          ai_tracking_url?: string;
+          ai_demo_url?: string;
           product_manager_id?: string | null;
           created_by?: string | null;
           created_at?: string;

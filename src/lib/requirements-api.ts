@@ -43,6 +43,10 @@ export async function createRequirement(data: RequirementFormData) {
     supplementary_notes: data.supplementary_notes,
     needs_data_analysis: data.needs_data_analysis,
     sr_number: data.sr_number || null,
+    ai_prd_url: data.ai_prd_url || "",
+    ai_tracking_url: data.ai_tracking_url || "",
+    ai_demo_url: data.ai_demo_url || "",
+    source: data.source || null,
     created_by: user.id,
     product_manager_id: user.id,
   });
@@ -54,13 +58,46 @@ export async function createRequirement(data: RequirementFormData) {
 export async function updateRequirement(
   id: string,
   data: Partial<RequirementFormData> & {
-    rat_status?: string;
-    rat_notes?: string;
     status?: string;
     schedule_type?: string | null;
+    source?: string | null;
   }
 ) {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "未登录" };
+
+  if (data.product_id) {
+    let productId = data.product_id;
+
+    if (!productId.includes("-")) {
+      const { data: product } = await supabase
+        .from("products")
+        .select("id")
+        .eq("code", productId)
+        .single();
+      if (product) productId = product.id;
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, product_id")
+      .eq("id", user.id)
+      .single();
+
+    if (
+      profile?.role === "product" &&
+      profile.product_id &&
+      productId !== profile.product_id
+    ) {
+      return { error: "只能修改自己所属产品的需求" };
+    }
+
+    data.product_id = productId;
+  }
 
   const { error } = await supabase
     .from("requirements")

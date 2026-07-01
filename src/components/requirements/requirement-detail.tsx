@@ -1,26 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, Pencil, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Select, Textarea } from "@/components/ui/input";
 import {
   Badge,
   priorityVariant,
-  ratStatusVariant,
   requirementStatusVariant,
 } from "@/components/ui/badge";
-import { updateRequirement, deleteRequirement } from "@/lib/requirements-api";
+import { GanttChart } from "@/components/schedule/gantt-chart";
+import { ScheduleForm } from "@/components/schedule/schedule-form";
+import { deleteRequirement } from "@/lib/requirements-api";
+import { createClient } from "@/lib/supabase/client";
 import type { Product, Profile, Requirement } from "@/types/database";
 import {
-  RAT_STATUS_LABELS,
   REQUIREMENT_STATUS_LABELS,
+  REQUIREMENT_SOURCE_LABELS,
   SCHEDULE_TYPE_LABELS,
-  type RatStatus,
-  type ScheduleType,
+  type SchedulePhase,
 } from "@/types/database";
+
+type ScheduleTaskRow = {
+  phase: string;
+  start_date: string | null;
+  end_date: string | null;
+  milestone_notes: string;
+};
 
 interface RequirementDetailProps {
   requirement: Requirement & { products: Product | null };
@@ -33,53 +40,40 @@ export function RequirementDetail({
   isProjectManager,
 }: RequirementDetailProps) {
   const router = useRouter();
-  const [ratStatus, setRatStatus] = useState(requirement.rat_status);
-  const [ratNotes, setRatNotes] = useState(requirement.rat_notes);
-  const [scheduleType, setScheduleType] = useState<ScheduleType | "">(
-    requirement.schedule_type || ""
-  );
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [tasks, setTasks] = useState<ScheduleTaskRow[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
 
-  async function handleRatUpdate() {
-    setLoading(true);
-    setError("");
+  const canSchedule = Boolean(requirement.schedule_type);
+  const hasSchedule = tasks.some((t) => t.start_date && t.end_date);
 
-    const updates: Record<string, unknown> = {
-      rat_status: ratStatus,
-      rat_notes: ratNotes,
-    };
+  const loadTasks = useCallback(async () => {
+    setTasksLoading(true);
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("schedule_tasks")
+      .select("phase, start_date, end_date, milestone_notes")
+      .eq("requirement_id", requirement.id)
+      .order("phase");
+    setTasks(data || []);
+    setTasksLoading(false);
+  }, [requirement.id]);
 
-    if (ratStatus === "passed" && scheduleType) {
-      updates.schedule_type = scheduleType;
-      updates.status = "scheduled";
-    }
-
-    const result = await updateRequirement(requirement.id, updates);
-
-    if (result.error) {
-      setError(result.error);
-      setLoading(false);
-      return;
-    }
-
-    router.refresh();
-    setLoading(false);
-  }
+  useEffect(() => {
+    if (canSchedule) loadTasks();
+  }, [canSchedule, loadTasks]);
 
   async function handleDelete() {
     if (!confirm("确定删除这条需求？")) return;
     const result = await deleteRequirement(requirement.id);
     if (result.error) {
-      setError(result.error);
+      alert(result.error);
       return;
     }
     router.push("/requirements");
   }
 
   return (
-    <div className="space-y-5 max-w-3xl">
-      {/* 返回按钮 */}
+    <div className="space-y-5 w-full">
       <Link
         href="/requirements"
         className="inline-flex items-center gap-1.5 text-sm text-[#7a96ae] hover:text-[#5ba4d4] transition-colors"
@@ -88,12 +82,10 @@ export function RequirementDetail({
         返回需求池
       </Link>
 
-      {/* 主信息卡片 */}
       <div
         className="bg-white rounded-2xl p-6 space-y-5"
         style={{ boxShadow: "0 2px 12px 0 rgb(90 140 180 / 0.10), 0 1px 3px 0 rgb(90 140 180 / 0.06)" }}
       >
-        {/* 标题 + 徽章 */}
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold text-[#1a2332] leading-snug">
@@ -105,27 +97,38 @@ export function RequirementDetail({
               </p>
             )}
           </div>
-          <div className="flex flex-wrap gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <Badge variant={priorityVariant(requirement.priority)}>
               {requirement.priority}
             </Badge>
             <Badge variant={requirementStatusVariant(requirement.status)}>
               {REQUIREMENT_STATUS_LABELS[requirement.status]}
             </Badge>
-            <Badge variant={ratStatusVariant(requirement.rat_status)}>
-              RAT: {RAT_STATUS_LABELS[requirement.rat_status]}
-            </Badge>
             {requirement.schedule_type && (
               <Badge variant="warning">
                 {SCHEDULE_TYPE_LABELS[requirement.schedule_type]}
               </Badge>
             )}
+            <Link
+              href={`/requirements/edit?id=${requirement.id}&from=detail`}
+              title="编辑"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[#7a96ae] hover:text-[#5ba4d4] hover:bg-[#e8f3fb] transition-colors"
+            >
+              <Pencil className="w-4 h-4" />
+            </Link>
           </div>
         </div>
 
-        {/* 元信息网格 */}
-        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <dl className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
           <MetaItem label="所属产品" value={requirement.products?.name || "—"} />
+          <MetaItem
+            label="来源"
+            value={
+              requirement.source
+                ? REQUIREMENT_SOURCE_LABELS[requirement.source]
+                : "未设定"
+            }
+          />
           <MetaItem
             label="目标交付月"
             value={requirement.target_delivery_month || "未设定"}
@@ -141,12 +144,20 @@ export function RequirementDetail({
           />
         </dl>
 
-        {/* 分割线 */}
+        {(requirement.ai_prd_url ||
+          requirement.ai_tracking_url ||
+          requirement.ai_demo_url) && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <LinkItem label="AI PRD" url={requirement.ai_prd_url} />
+            <LinkItem label="AI 埋点" url={requirement.ai_tracking_url} />
+            <LinkItem label="AI Demo" url={requirement.ai_demo_url} />
+          </div>
+        )}
+
         {(requirement.description || requirement.supplementary_notes) && (
           <div className="border-t border-[#f0f4f8]" />
         )}
 
-        {/* 详细说明 */}
         {requirement.description && (
           <div>
             <h3 className="text-xs font-semibold text-[#a0b4c4] uppercase tracking-wider mb-2">
@@ -158,7 +169,6 @@ export function RequirementDetail({
           </div>
         )}
 
-        {/* 补充说明 */}
         {requirement.supplementary_notes && (
           <div>
             <h3 className="text-xs font-semibold text-[#a0b4c4] uppercase tracking-wider mb-2">
@@ -171,97 +181,82 @@ export function RequirementDetail({
         )}
       </div>
 
-      {/* 排期入口（产品经理，RAT 已通过且已设排期类型） */}
-      {!isProjectManager &&
-        requirement.rat_status === "passed" &&
-        requirement.schedule_type && (
-          <div
-            className="bg-white rounded-2xl p-6"
-            style={{
-              boxShadow:
-                "0 2px 12px 0 rgb(90 140 180 / 0.10), 0 1px 3px 0 rgb(90 140 180 / 0.06)",
-            }}
-          >
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="font-semibold text-[#1a2332]">项目排期</h2>
-                <p className="text-sm text-[#7a96ae] mt-1">
-                  RAT 已通过，可录入各阶段排期时间
-                </p>
-              </div>
-              <Link href={`/schedule/detail?id=${requirement.id}`}>
-                <Button>录入排期</Button>
-              </Link>
-            </div>
-          </div>
-        )}
-
-      {/* RAT 评审卡片（仅项管） */}
-      {isProjectManager && (
+      {canSchedule && requirement.schedule_type && (
         <div
-          className="bg-white rounded-2xl p-6 space-y-4"
-          style={{ boxShadow: "0 2px 12px 0 rgb(90 140 180 / 0.10), 0 1px 3px 0 rgb(90 140 180 / 0.06)" }}
+          className="bg-white rounded-2xl p-6 space-y-5"
+          style={{
+            boxShadow:
+              "0 2px 12px 0 rgb(90 140 180 / 0.10), 0 1px 3px 0 rgb(90 140 180 / 0.06)",
+          }}
         >
-          <div className="flex items-center gap-2">
-            <div className="w-1 h-5 rounded-full bg-[#5ba4d4]" />
-            <h2 className="font-semibold text-[#1a2332]">RAT 评审（项管）</h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Select
-              label="RAT 状态"
-              value={ratStatus}
-              onChange={(e) => setRatStatus(e.target.value as RatStatus)}
-              options={Object.entries(RAT_STATUS_LABELS).map(([v, l]) => ({
-                value: v,
-                label: l,
-              }))}
-            />
-            {ratStatus === "passed" && (
-              <Select
-                label="排期类型"
-                value={scheduleType}
-                onChange={(e) => setScheduleType(e.target.value as ScheduleType)}
-                required
-                options={[
-                  { value: "", label: "请选择排期类型" },
-                  ...Object.entries(SCHEDULE_TYPE_LABELS).map(([v, l]) => ({
-                    value: v,
-                    label: l,
-                  })),
-                ]}
-              />
-            )}
-          </div>
-
-          <Textarea
-            label="RAT 备注"
-            value={ratNotes}
-            onChange={(e) => setRatNotes(e.target.value)}
-            placeholder="评审意见、通过条件等"
-          />
-
-          {error && (
-            <div className="flex items-start gap-2 text-sm text-[#e06060] bg-[#fdeaea] rounded-xl px-3.5 py-2.5">
-              <span className="mt-0.5 shrink-0">⚠</span>
-              <span>{error}</span>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-5 rounded-full bg-[#5ba4d4]" />
+              <h2 className="font-semibold text-[#1a2332]">项目排期</h2>
             </div>
-          )}
-
-          <div className="flex gap-3">
-            <Button onClick={handleRatUpdate} disabled={loading}>
-              {loading ? "保存中..." : "保存评审结果"}
-            </Button>
-            {ratStatus === "passed" && scheduleType && (
+            {hasSchedule && (
               <Link href={`/schedule/detail?id=${requirement.id}`}>
-                <Button variant="secondary">去排期</Button>
+                <Button variant="secondary" size="sm">
+                  编辑排期
+                </Button>
               </Link>
             )}
           </div>
+
+          {tasksLoading ? (
+            <p className="text-sm text-[#7a96ae]">加载排期中...</p>
+          ) : hasSchedule ? (
+            <GanttChart
+              expandPhases
+              rows={[
+                {
+                  id: requirement.id,
+                  label: requirement.title,
+                  bars: tasks
+                    .filter((t) => t.start_date && t.end_date)
+                    .map((t) => ({
+                      id: t.phase,
+                      phase: t.phase as SchedulePhase,
+                      start: t.start_date!,
+                      end: t.end_date!,
+                      tooltip: t.milestone_notes || undefined,
+                    })),
+                },
+              ]}
+            />
+          ) : (
+            <ScheduleForm
+              requirementId={requirement.id}
+              scheduleType={requirement.schedule_type}
+              initialTasks={tasks.map((t) => ({
+                phase: t.phase as SchedulePhase,
+                start_date: t.start_date ?? "",
+                end_date: t.end_date ?? "",
+                milestone_notes: t.milestone_notes,
+              }))}
+              onSaved={() => {
+                loadTasks();
+                router.refresh();
+              }}
+            />
+          )}
         </div>
       )}
 
-      {/* 删除操作（仅项管） */}
+      {!canSchedule && (
+        <div
+          className="bg-white rounded-2xl p-6"
+          style={{
+            boxShadow:
+              "0 2px 12px 0 rgb(90 140 180 / 0.10), 0 1px 3px 0 rgb(90 140 180 / 0.06)",
+          }}
+        >
+          <p className="text-sm text-[#7a96ae]">
+            请先在需求池中设置「预期落地」类型（TOS 版本 / 敏捷迭代）后再录入排期。
+          </p>
+        </div>
+      )}
+
       {isProjectManager && (
         <div className="flex justify-end">
           <button
@@ -274,6 +269,27 @@ export function RequirementDetail({
         </div>
       )}
     </div>
+  );
+}
+
+function LinkItem({ label, url }: { label: string; url: string }) {
+  if (!url) return null;
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 bg-[#f8fbfd] rounded-xl px-3.5 py-3 border border-[#edf3f8] hover:border-[#5ba4d4]/40 hover:bg-[#e8f3fb] transition-colors group"
+    >
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-[#a0b4c4] font-medium mb-0.5">{label}</p>
+        <p className="text-sm font-medium text-[#5ba4d4] truncate group-hover:underline">
+          {url}
+        </p>
+      </div>
+      <ExternalLink className="w-3.5 h-3.5 text-[#a0b4c4] group-hover:text-[#5ba4d4] shrink-0" />
+    </a>
   );
 }
 

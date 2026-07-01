@@ -7,7 +7,6 @@ import { REQUIREMENT_STATUS_LABELS } from "@/types/database";
 
 type RequirementStats = {
   status: string;
-  rat_status: string;
   priority: string;
 };
 
@@ -30,7 +29,7 @@ export default function DashboardPage() {
           .select("role, products(name)")
           .eq("id", user.id)
           .single(),
-        supabase.from("requirements").select("status, rat_status, priority"),
+        supabase.from("requirements").select("status, priority"),
       ]);
 
       type ProfileRow = { role: string; products: { name: string } | null };
@@ -52,7 +51,7 @@ export default function DashboardPage() {
 
   const total = requirements.length;
   const notStarted = requirements.filter((r) => r.status === "not_started").length;
-  const ratPending = requirements.filter((r) => r.rat_status === "not_reviewed").length;
+  const inProgress = requirements.filter((r) => r.status === "in_progress").length;
   const p0Count = requirements.filter((r) => r.priority === "P0").length;
 
   return (
@@ -69,7 +68,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard label="需求总数" value={total} color="#5ba4d4" bg="#e8f3fb" icon="📋" />
             <StatCard label="未启动" value={notStarted} color="#7a96ae" bg="#edf3f8" icon="⏳" />
-            <StatCard label="待 RAT 评审" value={ratPending} color="#e8a43c" bg="#fef5e4" icon="🔍" />
+            <StatCard label="进行中" value={inProgress} color="#e8a43c" bg="#fef5e4" icon="🚀" />
             <StatCard label="P0 需求" value={p0Count} color="#e06060" bg="#fdeaea" icon="🔥" />
           </div>
 
@@ -88,7 +87,9 @@ export default function DashboardPage() {
                 const barColors: Record<string, string> = {
                   not_started: "#a0b4c4",
                   in_progress: "#5ba4d4",
+                  reviewed: "#7c6cc8",
                   scheduled: "#e8a43c",
+                  in_development: "#5ba4d4",
                   completed: "#4db896",
                   cancelled: "#e06060",
                 };

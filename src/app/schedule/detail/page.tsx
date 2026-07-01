@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { ArrowLeft, CalendarDays } from "lucide-react";
 import { ProtectedPage } from "@/components/layout/protected-page";
 import { ScheduleForm } from "@/components/schedule/schedule-form";
+import { GanttChart } from "@/components/schedule/gantt-chart";
 import { createClient } from "@/lib/supabase/client";
 import { SCHEDULE_TYPE_LABELS, type ScheduleType } from "@/types/database";
 
@@ -83,13 +84,13 @@ function ScheduleDetailContent() {
     requirement.schedule_type === "tos" ? "#e8f3fb" : "#e8f8f2";
 
   return (
-    <div className="space-y-5 max-w-4xl">
+    <div className="space-y-5 w-full">
       <Link
-        href="/schedule"
+        href={`/requirements/detail?id=${requirement.id}`}
         className="inline-flex items-center gap-1.5 text-sm text-[#7a96ae] hover:text-[#5ba4d4] transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
-        返回排期列表
+        返回需求详情
       </Link>
 
       <div
@@ -141,22 +142,47 @@ function ScheduleDetailContent() {
         </div>
 
         {requirement.schedule_type ? (
-          <ScheduleForm
-            requirementId={requirement.id}
-            scheduleType={requirement.schedule_type}
-            initialTasks={tasks.map((t) => ({
-              phase: t.phase as import("@/types/database").SchedulePhase,
-              start_date: t.start_date ?? "",
-              end_date: t.end_date ?? "",
-              milestone_notes: t.milestone_notes,
-            }))}
-          />
+          <>
+            <GanttChart
+              expandPhases
+              rows={[
+                {
+                  id: requirement.id,
+                  label: requirement.title,
+                  bars: tasks
+                    .filter((t) => t.start_date && t.end_date)
+                    .map((t) => ({
+                      id: t.phase,
+                      phase: t.phase as import("@/types/database").SchedulePhase,
+                      start: t.start_date!,
+                      end: t.end_date!,
+                      tooltip: t.milestone_notes
+                        ? `${t.milestone_notes}`
+                        : undefined,
+                    })),
+                },
+              ]}
+              emptyMessage="录入各阶段日期后，此处将显示甘特图预览"
+            />
+            <div className="mt-6 pt-6 border-t border-[#f0f4f8]">
+              <ScheduleForm
+                requirementId={requirement.id}
+                scheduleType={requirement.schedule_type}
+                initialTasks={tasks.map((t) => ({
+                  phase: t.phase as import("@/types/database").SchedulePhase,
+                  start_date: t.start_date ?? "",
+                  end_date: t.end_date ?? "",
+                  milestone_notes: t.milestone_notes,
+                }))}
+              />
+            </div>
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="text-4xl mb-3">📅</div>
             <p className="text-[#7a96ae] font-medium text-sm">尚未设置排期类型</p>
             <p className="text-[#a0b4c4] text-xs mt-1">
-              请等待项管完成 RAT 评审并选择 TOS 或敏捷排期类型
+              请先在需求池中设置「预期落地」类型（TOS 版本 / 敏捷迭代）
             </p>
           </div>
         )}

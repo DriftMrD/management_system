@@ -9,7 +9,7 @@ const geistSans = Geist({
 
 export const metadata: Metadata = {
   title: "需求管理系统",
-  description: "需求池录入、RAT 评审、排期管理",
+  description: "需求池录入、排期管理",
 };
 
 export default function RootLayout({

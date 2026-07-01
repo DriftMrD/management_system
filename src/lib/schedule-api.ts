@@ -34,5 +34,14 @@ export async function saveScheduleTasks(
     .upsert(rows, { onConflict: "requirement_id,phase" });
 
   if (error) return { error: error.message };
+
+  const hasDates = tasks.some((t) => t.start_date && t.end_date);
+  if (hasDates) {
+    await supabase
+      .from("requirements")
+      .update({ status: "scheduled" })
+      .eq("id", requirementId);
+  }
+
   return { success: true };
 }
