@@ -294,7 +294,7 @@ export function GanttChart({
 
   const range = useMemo(() => getDateRange(rowsWithBars), [rowsWithBars]);
 
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
   const totalDays = range
     ? differenceInCalendarDays(range.end, range.start) + 1
     : 0;

@@ -103,7 +103,7 @@ function sortRequirements(
   const dir = sortDir === "asc" ? 1 : -1;
   return [...list].sort((a, b) => {
     if (!sortKey) {
-      let cmp = compareScheduleType(a, b);
+      const cmp = compareScheduleType(a, b);
       if (cmp !== 0) return cmp;
       return compareTargetMonth(a, b);
     }
