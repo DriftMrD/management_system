@@ -45,6 +45,9 @@ export function RequirementDetail({
 
   const canSchedule = Boolean(requirement.schedule_type);
   const hasSchedule = tasks.some((t) => t.start_date && t.end_date);
+  const supplementaryNotes = displaySupplementaryNotes(
+    requirement.supplementary_notes
+  );
 
   const loadTasks = useCallback(async () => {
     setTasksLoading(true);
@@ -134,6 +137,10 @@ export function RequirementDetail({
             value={requirement.target_delivery_month || "未设定"}
           />
           <MetaItem
+            label="落地版本"
+            value={requirement.landing_version || "未设定"}
+          />
+          <MetaItem
             label="数分需求"
             value={requirement.needs_data_analysis ? "需要" : "不需要"}
             highlight={requirement.needs_data_analysis}
@@ -154,7 +161,7 @@ export function RequirementDetail({
           </div>
         )}
 
-        {(requirement.description || requirement.supplementary_notes) && (
+        {(requirement.description || supplementaryNotes) && (
           <div className="border-t border-[#f0f4f8]" />
         )}
 
@@ -169,13 +176,13 @@ export function RequirementDetail({
           </div>
         )}
 
-        {requirement.supplementary_notes && (
+        {supplementaryNotes && (
           <div>
             <h3 className="text-xs font-semibold text-[#a0b4c4] uppercase tracking-wider mb-2">
               补充说明
             </h3>
             <p className="text-sm text-[#3a4f60] whitespace-pre-wrap leading-relaxed bg-[#f8fbfd] rounded-xl px-4 py-3 border border-[#edf3f8]">
-              {requirement.supplementary_notes}
+              {supplementaryNotes}
             </p>
           </div>
         )}
@@ -270,6 +277,14 @@ export function RequirementDetail({
       )}
     </div>
   );
+}
+
+function displaySupplementaryNotes(notes: string): string {
+  return notes
+    .split("\n")
+    .filter((line) => !line.startsWith("预期落地："))
+    .join("\n")
+    .trim();
 }
 
 function LinkItem({ label, url }: { label: string; url: string }) {

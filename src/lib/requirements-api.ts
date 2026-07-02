@@ -39,7 +39,9 @@ export async function createRequirement(data: RequirementFormData) {
     description: data.description,
     product_id: productId,
     priority: data.priority,
+    schedule_type: data.schedule_type || null,
     target_delivery_month: data.target_delivery_month || null,
+    landing_version: data.landing_version || null,
     supplementary_notes: data.supplementary_notes,
     needs_data_analysis: data.needs_data_analysis,
     sr_number: data.sr_number || null,
@@ -60,6 +62,8 @@ export async function updateRequirement(
   data: Partial<RequirementFormData> & {
     status?: string;
     schedule_type?: string | null;
+    landing_version?: string | null;
+    target_delivery_month?: string | null;
     source?: string | null;
   }
 ) {

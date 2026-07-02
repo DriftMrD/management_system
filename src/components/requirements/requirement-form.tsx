@@ -81,11 +81,14 @@ export function RequirementForm({
   const [targetMonth, setTargetMonth] = useState(
     requirement?.target_delivery_month || ""
   );
+  const [landingVersion, setLandingVersion] = useState(
+    requirement?.landing_version || ""
+  );
   const [supplementaryNotes, setSupplementaryNotes] = useState(
     parsed.supplementaryNotes
   );
   const [needsDataAnalysis, setNeedsDataAnalysis] = useState(
-    requirement?.needs_data_analysis ?? true
+    requirement?.needs_data_analysis ?? false
   );
   const [srNumber, setSrNumber] = useState(requirement?.sr_number || "");
   const [expectedDelivery, setExpectedDelivery] = useState<"" | "tos" | "agile">(
@@ -142,22 +145,14 @@ export function RequirementForm({
 
     setLoading(true);
 
-    const notes = [
-      supplementaryNotes,
-      expectedDelivery
-        ? `预期落地：${SCHEDULE_TYPE_LABELS[expectedDelivery]}`
-        : "",
-    ]
-      .filter(Boolean)
-      .join("\n");
-
     const payload = {
       title,
       description,
       product_id: productId,
       priority,
       target_delivery_month: targetMonth,
-      supplementary_notes: notes,
+      landing_version: landingVersion,
+      supplementary_notes: supplementaryNotes,
       needs_data_analysis: needsDataAnalysis,
       sr_number: srNumber,
       source: source || null,
@@ -247,6 +242,15 @@ export function RequirementForm({
             ...MONTHS.map((m) => ({ value: m, label: m })),
           ]}
         />
+        <Input
+          label="落地版本"
+          value={landingVersion}
+          onChange={(e) => setLandingVersion(e.target.value)}
+          placeholder="如 TOS 16.1"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Select
           label="预期落地"
           value={expectedDelivery}

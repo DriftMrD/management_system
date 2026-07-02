@@ -4,8 +4,10 @@ export type RequirementStatus =
   | "not_started"
   | "in_progress"
   | "reviewed"
+  | "pending_schedule"
   | "scheduled"
   | "in_development"
+  | "testing"
   | "completed"
   | "cancelled";
 
@@ -59,6 +61,7 @@ export interface Requirement {
   status: RequirementStatus;
   schedule_type: ScheduleType | null;
   target_delivery_month: string | null;
+  landing_version: string | null;
   supplementary_notes: string;
   needs_data_analysis: boolean;
   related_files: RelatedFile[];
@@ -79,6 +82,7 @@ export interface RequirementFormData {
   product_id: string;
   priority: PriorityLevel;
   target_delivery_month: string;
+  landing_version: string;
   supplementary_notes: string;
   needs_data_analysis: boolean;
   sr_number: string;
@@ -93,8 +97,10 @@ export const REQUIREMENT_STATUS_LABELS: Record<RequirementStatus, string> = {
   not_started: "未启动",
   in_progress: "进行中",
   reviewed: "已评审",
+  pending_schedule: "待排期",
   scheduled: "已排期",
   in_development: "开发中",
+  testing: "测试中",
   completed: "已完成",
   cancelled: "已取消",
 };

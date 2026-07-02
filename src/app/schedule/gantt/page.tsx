@@ -20,6 +20,19 @@ type RequirementWithTasks = {
   }[];
 };
 
+function earliestStartTime(bars: { start: string }[]): number {
+  if (bars.length === 0) return Number.POSITIVE_INFINITY;
+  return Math.min(...bars.map((bar) => new Date(bar.start).getTime()));
+}
+
+function sortRowsByEarliestStart<T extends { bars: { start: string }[] }>(
+  list: T[]
+): T[] {
+  return [...list].sort(
+    (a, b) => earliestStartTime(a.bars) - earliestStartTime(b.bars)
+  );
+}
+
 export default function ScheduleGanttPage() {
   const [rows, setRows] = useState<(GanttRow & { _scheduleType: string | null })[]>([]);
   const [isPM, setIsPM] = useState(false);
@@ -44,8 +57,7 @@ export default function ScheduleGanttPage() {
         supabase
           .from("requirements")
           .select("id, title, schedule_type, products(name), schedule_tasks(phase, start_date, end_date)")
-          .not("schedule_type", "is", null)
-          .order("updated_at", { ascending: false }),
+          .not("schedule_type", "is", null),
       ]);
 
       type ProfileRow = { role: string; products: { name: string } | null };
@@ -78,7 +90,7 @@ export default function ScheduleGanttPage() {
         })
         .filter((r) => r.bars.length > 0);
 
-      setRows(ganttRows);
+      setRows(sortRowsByEarliestStart(ganttRows));
       setLoading(false);
     }
 
@@ -86,9 +98,7 @@ export default function ScheduleGanttPage() {
   }, []);
 
   const filteredRows =
-    filter === "all"
-      ? rows
-      : rows.filter((r) => r._scheduleType === filter);
+    filter === "all" ? rows : rows.filter((r) => r._scheduleType === filter);
 
   return (
     <ProtectedPage>

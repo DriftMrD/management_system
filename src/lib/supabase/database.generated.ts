@@ -72,12 +72,15 @@ export interface Database {
             | "not_started"
             | "in_progress"
             | "reviewed"
+            | "pending_schedule"
             | "scheduled"
             | "in_development"
+            | "testing"
             | "completed"
             | "cancelled";
           schedule_type: "tos" | "agile" | null;
           target_delivery_month: string | null;
+          landing_version: string | null;
           supplementary_notes: string;
           needs_data_analysis: boolean;
           related_files: Json;
@@ -106,12 +109,15 @@ export interface Database {
             | "not_started"
             | "in_progress"
             | "reviewed"
+            | "pending_schedule"
             | "scheduled"
             | "in_development"
+            | "testing"
             | "completed"
             | "cancelled";
           schedule_type?: "tos" | "agile" | null;
           target_delivery_month?: string | null;
+          landing_version?: string | null;
           supplementary_notes?: string;
           needs_data_analysis?: boolean;
           related_files?: Json;
@@ -140,12 +146,15 @@ export interface Database {
             | "not_started"
             | "in_progress"
             | "reviewed"
+            | "pending_schedule"
             | "scheduled"
             | "in_development"
+            | "testing"
             | "completed"
             | "cancelled";
           schedule_type?: "tos" | "agile" | null;
           target_delivery_month?: string | null;
+          landing_version?: string | null;
           supplementary_notes?: string;
           needs_data_analysis?: boolean;
           related_files?: Json;

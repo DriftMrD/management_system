@@ -454,7 +454,7 @@ export function GanttChart({
             {renderRows.map((row) => (
               <Fragment key={row.id}>
                 <div
-                  className="gantt-sticky-label sticky left-0 z-[5] flex flex-col justify-center px-4 border-r border-b border-[#f0f4f8] bg-white hover:bg-[#fafcfe] transition-colors"
+                  className="gantt-sticky-label sticky left-0 z-[15] flex flex-col justify-center px-4 border-r border-b border-[#f0f4f8] bg-white hover:bg-[#fafcfe] transition-colors"
                   style={{ height: ROW_HEIGHT }}
                 >
                   <p
@@ -478,7 +478,7 @@ export function GanttChart({
                 </div>
 
                 <div
-                  className="relative border-b border-[#f0f4f8] z-0 has-[.gantt-bar:hover]:z-20"
+                  className="relative border-b border-[#f0f4f8] z-0 overflow-hidden"
                   style={{ height: ROW_HEIGHT, width: timelineWidth }}
                 >
                   {dayGranularity
@@ -522,7 +522,7 @@ export function GanttChart({
                     return (
                       <div
                         key={bar.id}
-                        className="gantt-bar absolute z-[4]"
+                        className="gantt-bar absolute z-[4] hover:z-[10]"
                         style={{
                           left: pos.left,
                           width: pos.width,

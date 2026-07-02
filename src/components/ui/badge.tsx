@@ -44,8 +44,10 @@ export function priorityVariant(priority: string): keyof typeof variants {
 
 export function requirementStatusVariant(status: string): keyof typeof variants {
   if (status === "completed") return "success";
-  if (status === "in_progress" || status === "in_development") return "primary";
+  if (status === "in_progress" || status === "in_development" || status === "testing")
+    return "primary";
   if (status === "reviewed") return "purple";
+  if (status === "pending_schedule") return "default";
   if (status === "scheduled") return "warning";
   if (status === "cancelled") return "danger";
   return "gray";

@@ -174,6 +174,7 @@ function ScheduleDetailContent() {
                   end_date: t.end_date ?? "",
                   milestone_notes: t.milestone_notes,
                 }))}
+                returnTo={`/requirements/detail?id=${requirement.id}`}
               />
             </div>
           </>

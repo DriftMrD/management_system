@@ -25,6 +25,7 @@ interface ScheduleFormProps {
   scheduleType: ScheduleType;
   initialTasks: TaskRow[];
   onSaved?: () => void;
+  returnTo?: string;
 }
 
 function buildRows(
@@ -47,6 +48,7 @@ export function ScheduleForm({
   scheduleType,
   initialTasks,
   onSaved,
+  returnTo,
 }: ScheduleFormProps) {
   const router = useRouter();
   const [rows, setRows] = useState<TaskRow[]>(() => buildRows(initialTasks));
@@ -73,6 +75,10 @@ export function ScheduleForm({
 
     router.refresh();
     onSaved?.();
+    if (returnTo) {
+      router.push(returnTo);
+      return;
+    }
     setLoading(false);
   }
 

@@ -88,8 +88,10 @@ export default function DashboardPage() {
                   not_started: "#a0b4c4",
                   in_progress: "#5ba4d4",
                   reviewed: "#7c6cc8",
+                  pending_schedule: "#8aa4b8",
                   scheduled: "#e8a43c",
                   in_development: "#5ba4d4",
+                  testing: "#6b9fd4",
                   completed: "#4db896",
                   cancelled: "#e06060",
                 };

@@ -4,24 +4,23 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
 import { Check, ChevronDown } from "lucide-react";
-import { badgeVariants } from "@/components/ui/badge";
 import { getDropdownMenuPosition, scrollSelectedOptionIntoMenu } from "@/components/ui/dropdown-menu";
 
-interface BadgeSelectProps<T extends string> {
-  value: T;
-  options: { value: T; label: string }[];
-  variant: keyof typeof badgeVariants;
+interface FilterSelectProps {
+  label?: string;
+  value: string;
+  options: { value: string; label: string }[];
   disabled?: boolean;
-  onChange: (value: T) => void;
+  onChange: (value: string) => void;
 }
 
-export function BadgeSelect<T extends string>({
+export function FilterSelect({
+  label,
   value,
   options,
-  variant,
   disabled,
   onChange,
-}: BadgeSelectProps<T>) {
+}: FilterSelectProps) {
   const [open, setOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<React.CSSProperties>({});
   const rootRef = useRef<HTMLDivElement>(null);
@@ -35,7 +34,7 @@ export function BadgeSelect<T extends string>({
     const updatePosition = () => {
       const rect = buttonRef.current?.getBoundingClientRect();
       if (!rect) return;
-      setMenuStyle(getDropdownMenuPosition(rect, options.length));
+      setMenuStyle(getDropdownMenuPosition(rect, options.length, rect.width));
     };
 
     updatePosition();
@@ -72,7 +71,7 @@ export function BadgeSelect<T extends string>({
       const target = event.target as Node;
       if (
         rootRef.current?.contains(target) ||
-        (event.target as Element).closest("[data-badge-select-menu]")
+        (event.target as Element).closest("[data-filter-select-menu]")
       ) {
         return;
       }
@@ -84,7 +83,10 @@ export function BadgeSelect<T extends string>({
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative inline-flex">
+    <div ref={rootRef} className="min-w-0 space-y-1.5">
+      {label && (
+        <span className="block text-sm font-medium text-[#1a2332]">{label}</span>
+      )}
       <button
         ref={buttonRef}
         type="button"
@@ -93,17 +95,20 @@ export function BadgeSelect<T extends string>({
         aria-expanded={open}
         onClick={() => !disabled && setOpen((current) => !current)}
         className={clsx(
-          "inline-flex items-center gap-1 rounded-full pl-2.5 pr-1.5 py-0.5 text-xs font-medium",
-          "border-0 focus:outline-none focus:ring-2 focus:ring-[#5ba4d4]/30",
-          "hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed",
-          badgeVariants[variant]
+          "flex w-full items-center justify-between gap-2 rounded-xl border border-[#dde6ef] bg-white px-3.5 py-2.5 text-sm text-[#1a2332]",
+          "shadow-[0_1px_3px_0_rgb(90_140_180/0.06)] transition-all",
+          "focus:border-[#5ba4d4] focus:outline-none focus:ring-3 focus:ring-[#5ba4d4]/15",
+          "disabled:cursor-not-allowed disabled:opacity-50",
+          open && "border-[#5ba4d4] ring-3 ring-[#5ba4d4]/15"
         )}
       >
-        <span>{selected?.label ?? value}</span>
+        <span className="truncate text-left">
+          {selected?.label ?? (value || "请选择")}
+        </span>
         <ChevronDown
           className={clsx(
-            "w-3 h-3 opacity-50 transition-transform",
-            open && "rotate-180"
+            "h-4 w-4 shrink-0 text-[#a0b4c4] transition-transform",
+            open && "rotate-180 text-[#5ba4d4]"
           )}
         />
       </button>
@@ -112,7 +117,7 @@ export function BadgeSelect<T extends string>({
         createPortal(
           <div
             ref={menuRef}
-            data-badge-select-menu
+            data-filter-select-menu
             role="listbox"
             style={menuStyle}
             className="rounded-xl border border-[#edf3f8] bg-white py-1 shadow-[0_8px_24px_rgb(90_140_180_/_0.16)] overscroll-contain"
@@ -121,7 +126,7 @@ export function BadgeSelect<T extends string>({
               const isSelected = opt.value === value;
               return (
                 <button
-                  key={opt.value}
+                  key={opt.value || "__empty__"}
                   type="button"
                   role="option"
                   aria-selected={isSelected}
@@ -130,16 +135,16 @@ export function BadgeSelect<T extends string>({
                     setOpen(false);
                   }}
                   className={clsx(
-                    "flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors",
+                    "flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors",
                     isSelected
                       ? "bg-[#f8fbfd] font-medium text-[#1a2332]"
                       : "text-[#3a4f60] hover:bg-[#f8fbfd]"
                   )}
                 >
-                  <span className="flex h-3 w-3 shrink-0 items-center justify-center">
-                    {isSelected && <Check className="h-3 w-3 text-[#5ba4d4]" />}
+                  <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+                    {isSelected && <Check className="h-3.5 w-3.5 text-[#5ba4d4]" />}
                   </span>
-                  <span>{opt.label}</span>
+                  <span className="truncate">{opt.label}</span>
                 </button>
               );
             })}
