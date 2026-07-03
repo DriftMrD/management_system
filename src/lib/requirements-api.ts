@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { isProductScopedRole } from "@/types/database";
 import type { RequirementFormData } from "@/types/database";
 
 export async function createRequirement(data: RequirementFormData) {
@@ -27,7 +28,8 @@ export async function createRequirement(data: RequirementFormData) {
     .single();
 
   if (
-    profile?.role === "product" &&
+    profile?.role &&
+    isProductScopedRole(profile.role) &&
     profile.product_id &&
     productId !== profile.product_id
   ) {
@@ -93,7 +95,8 @@ export async function updateRequirement(
       .single();
 
     if (
-      profile?.role === "product" &&
+      profile?.role &&
+      isProductScopedRole(profile.role) &&
       profile.product_id &&
       productId !== profile.product_id
     ) {

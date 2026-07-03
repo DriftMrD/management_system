@@ -35,7 +35,7 @@ export interface Database {
           id: string;
           email: string;
           full_name: string;
-          role: "product" | "project_manager";
+          role: "product" | "project_manager" | "developer";
           product_id: string | null;
           created_at: string;
           updated_at: string;
@@ -44,7 +44,7 @@ export interface Database {
           id: string;
           email: string;
           full_name?: string;
-          role?: "product" | "project_manager";
+          role?: "product" | "project_manager" | "developer";
           product_id?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -53,7 +53,7 @@ export interface Database {
           id?: string;
           email?: string;
           full_name?: string;
-          role?: "product" | "project_manager";
+          role?: "product" | "project_manager" | "developer";
           product_id?: string | null;
           created_at?: string;
           updated_at?: string;

@@ -20,6 +20,7 @@ import type {
   Requirement,
   RequirementStatus,
   ScheduleType,
+  UserRole,
 } from "@/types/database";
 import {
   PRIORITY_LABELS,
@@ -143,12 +144,14 @@ interface RequirementsListProps {
   requirements: (Requirement & { products: Product | null })[];
   products: Product[];
   isProjectManager: boolean;
+  userRole: UserRole;
 }
 
 export function RequirementsList({
   requirements,
   products,
   isProjectManager,
+  userRole,
 }: RequirementsListProps) {
   const router = useRouter();
   const [items, setItems] = useState(requirements);
@@ -215,6 +218,10 @@ export function RequirementsList({
     () => sorted.filter((req) => req.status === "completed"),
     [sorted]
   );
+
+  const roleFocusLabel =
+    userRole === "developer" ? "研发关注" : "产品关注";
+  const showRoleFocus = userRole === "product" || userRole === "developer";
 
   const tableColSpan = isProjectManager ? 8 : 7;
 
@@ -391,21 +398,23 @@ export function RequirementsList({
             />
           </div>
 
-          <label
-            className={`inline-flex shrink-0 cursor-pointer items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm font-medium transition-all ${
-              productFocus
-                ? "border-[#5ba4d4] bg-[#e8f3fb] text-[#5ba4d4] shadow-[0_1px_3px_0_rgb(90_140_180/0.06)]"
-                : "border-[#dde6ef] bg-white text-[#1a2332] hover:border-[#5ba4d4]/40 hover:bg-[#f8fbfd]"
-            }`}
-          >
-            <input
-              type="checkbox"
-              checked={productFocus}
-              onChange={(e) => toggleProductFocus(e.target.checked)}
-              className="h-4 w-4 rounded border-[#dde6ef] text-[#5ba4d4] accent-[#5ba4d4] cursor-pointer"
-            />
-            产品关注
-          </label>
+          {showRoleFocus && (
+            <label
+              className={`inline-flex shrink-0 cursor-pointer items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm font-medium transition-all ${
+                productFocus
+                  ? "border-[#5ba4d4] bg-[#e8f3fb] text-[#5ba4d4] shadow-[0_1px_3px_0_rgb(90_140_180/0.06)]"
+                  : "border-[#dde6ef] bg-white text-[#1a2332] hover:border-[#5ba4d4]/40 hover:bg-[#f8fbfd]"
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={productFocus}
+                onChange={(e) => toggleProductFocus(e.target.checked)}
+                className="h-4 w-4 rounded border-[#dde6ef] text-[#5ba4d4] accent-[#5ba4d4] cursor-pointer"
+              />
+              {roleFocusLabel}
+            </label>
+          )}
         </div>
 
         {hasActiveFilters && (
@@ -441,7 +450,7 @@ export function RequirementsList({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#edf3f8] bg-[#f8fbfd]">
-                  <th className="px-5 py-3.5 font-medium text-[#7a96ae] text-left">
+                  <th className="px-3 py-2.5 font-medium text-[#7a96ae] text-left">
                     需求描述
                   </th>
                   {isProjectManager && (
@@ -491,7 +500,7 @@ export function RequirementsList({
                     onSort={handleSort}
                     className="min-w-[120px]"
                   />
-                  <th className="px-5 py-3.5 font-medium text-[#7a96ae] text-right">
+                  <th className="px-3 py-2.5 font-medium text-[#7a96ae] text-right">
                     操作
                   </th>
                 </tr>
@@ -509,7 +518,7 @@ export function RequirementsList({
                 {completedRows.length > 0 && (
                   <>
                     <tr className="bg-[#f8fbfd]">
-                      <td colSpan={tableColSpan} className="px-5 py-2.5">
+                      <td colSpan={tableColSpan} className="px-3 py-2">
                         <button
                           type="button"
                           onClick={() => setCompletedExpanded((open) => !open)}
@@ -579,7 +588,7 @@ function RequirementTableRow({
           : "hover:bg-[#f8fbfd]"
       }`}
     >
-      <td className="px-5 py-3.5">
+      <td className="px-3 py-2">
         <Link
           href={`/requirements/detail?id=${req.id}`}
           className={`font-medium hover:text-[#5ba4d4] transition-colors ${
@@ -595,11 +604,11 @@ function RequirementTableRow({
         )}
       </td>
       {isProjectManager && (
-        <td className="px-5 py-3.5">
+        <td className="px-3 py-2">
           <Badge variant="primary">{req.products?.name}</Badge>
         </td>
       )}
-      <td className="px-5 py-3.5">
+      <td className="px-3 py-2">
         <BadgeSelect
           value={req.priority}
           disabled={isSaving(req.id, "priority")}
@@ -611,7 +620,7 @@ function RequirementTableRow({
           onChange={(priority) => onFieldChange(req.id, "priority", priority)}
         />
       </td>
-      <td className="px-5 py-3.5">
+      <td className="px-3 py-2">
         <BadgeSelect
           value={req.status}
           disabled={isSaving(req.id, "status")}
@@ -623,7 +632,7 @@ function RequirementTableRow({
           onChange={(status) => onFieldChange(req.id, "status", status)}
         />
       </td>
-      <td className="px-5 py-3.5">
+      <td className="px-3 py-2">
         <BadgeSelect
           value={req.schedule_type || ""}
           disabled={isSaving(req.id, "schedule_type")}
@@ -640,7 +649,7 @@ function RequirementTableRow({
           }
         />
       </td>
-      <td className="px-5 py-3.5">
+      <td className="px-3 py-2">
         <BadgeSelect
           value={req.target_delivery_month || ""}
           disabled={isSaving(req.id, "target_delivery_month")}
@@ -654,14 +663,14 @@ function RequirementTableRow({
           }
         />
       </td>
-      <td className="px-5 py-3.5">
+      <td className="px-3 py-2">
         <LandingVersionCell
           value={req.landing_version || ""}
           disabled={isSaving(req.id, "landing_version")}
           onSave={(value) => onFieldChange(req.id, "landing_version", value)}
         />
       </td>
-      <td className="px-5 py-3.5">
+      <td className="px-3 py-2">
         <div className="flex items-center justify-end gap-1">
           <Link
             href={`/requirements/detail?id=${req.id}`}
@@ -702,7 +711,7 @@ function SortableHeader({
 
   return (
     <th
-      className={`px-5 py-3.5 font-medium text-[#7a96ae] text-left ${className}`}
+      className={`px-3 py-2.5 font-medium text-[#7a96ae] text-left ${className}`}
     >
       <div className="inline-flex items-center gap-1.5">
         <span>{label}</span>

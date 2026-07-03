@@ -93,7 +93,7 @@ export function BadgeSelect<T extends string>({
         aria-expanded={open}
         onClick={() => !disabled && setOpen((current) => !current)}
         className={clsx(
-          "inline-flex items-center gap-1 rounded-full pl-2.5 pr-1.5 py-0.5 text-xs font-medium",
+          "inline-flex items-center gap-0.5 rounded-full pl-2 pr-1 py-px text-xs font-medium leading-tight",
           "border-0 focus:outline-none focus:ring-2 focus:ring-[#5ba4d4]/30",
           "hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed",
           badgeVariants[variant]

@@ -1,4 +1,13 @@
-export type UserRole = "product" | "project_manager";
+export type UserRole = "product" | "project_manager" | "developer";
+
+/** 产品经理、研发：绑定产品，只能操作所属产品需求 */
+export function isProductScopedRole(role: UserRole): boolean {
+  return role === "product" || role === "developer";
+}
+
+export function requiresProductSelection(role: UserRole): boolean {
+  return isProductScopedRole(role);
+}
 
 export type RequirementStatus =
   | "not_started"
@@ -119,6 +128,7 @@ export const SCHEDULE_TYPE_LABELS: Record<ScheduleType, string> = {
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   product: "产品经理",
   project_manager: "项管",
+  developer: "研发",
 };
 
 export const SCHEDULE_PHASE_LABELS: Record<SchedulePhase, string> = {

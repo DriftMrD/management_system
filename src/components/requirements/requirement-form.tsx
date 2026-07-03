@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Input, Textarea, Select } from "@/components/ui/input";
+import { Input, Textarea } from "@/components/ui/input";
+import { FilterSelect } from "@/components/ui/filter-select";
 import { Button } from "@/components/ui/button";
 import { createRequirement, updateRequirement } from "@/lib/requirements-api";
 import { PRODUCT_OPTIONS } from "@/lib/products";
@@ -201,11 +202,10 @@ export function RequirementForm({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {isProjectManager ? (
-          <Select
+          <FilterSelect
             label="所属产品"
             value={productId}
-            onChange={(e) => setProductId(e.target.value)}
-            required
+            onChange={setProductId}
             options={[
               { value: "", label: "请选择产品" },
               ...productOptions,
@@ -221,10 +221,10 @@ export function RequirementForm({
             </div>
           </div>
         )}
-        <Select
+        <FilterSelect
           label="优先级"
           value={priority}
-          onChange={(e) => setPriority(e.target.value as PriorityLevel)}
+          onChange={(v) => setPriority(v as PriorityLevel)}
           options={Object.entries(PRIORITY_LABELS).map(([v, l]) => ({
             value: v,
             label: l,
@@ -233,10 +233,10 @@ export function RequirementForm({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Select
+        <FilterSelect
           label="目标交付月"
           value={targetMonth}
-          onChange={(e) => setTargetMonth(e.target.value)}
+          onChange={setTargetMonth}
           options={[
             { value: "", label: "未设定" },
             ...MONTHS.map((m) => ({ value: m, label: m })),
@@ -251,15 +251,25 @@ export function RequirementForm({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Select
+        <FilterSelect
           label="预期落地"
           value={expectedDelivery}
-          onChange={(e) =>
-            setExpectedDelivery(e.target.value as "" | "tos" | "agile")
-          }
+          onChange={(v) => setExpectedDelivery(v as "" | "tos" | "agile")}
           options={[
             { value: "", label: "未设定" },
             ...Object.entries(SCHEDULE_TYPE_LABELS).map(([v, l]) => ({
+              value: v,
+              label: l,
+            })),
+          ]}
+        />
+        <FilterSelect
+          label="来源"
+          value={source}
+          onChange={(v) => setSource(v as RequirementSource | "")}
+          options={[
+            { value: "", label: "请选择来源" },
+            ...Object.entries(REQUIREMENT_SOURCE_LABELS).map(([v, l]) => ({
               value: v,
               label: l,
             })),
@@ -272,19 +282,6 @@ export function RequirementForm({
         value={srNumber}
         onChange={(e) => setSrNumber(e.target.value)}
         placeholder="SR-202603-003697"
-      />
-
-      <Select
-        label="来源"
-        value={source}
-        onChange={(e) => setSource(e.target.value as RequirementSource | "")}
-        options={[
-          { value: "", label: "请选择来源" },
-          ...Object.entries(REQUIREMENT_SOURCE_LABELS).map(([v, l]) => ({
-            value: v,
-            label: l,
-          })),
-        ]}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -319,14 +316,12 @@ export function RequirementForm({
       />
 
       <label className="flex items-center gap-2.5 cursor-pointer group">
-        <div className="relative">
-          <input
-            type="checkbox"
-            checked={needsDataAnalysis}
-            onChange={(e) => setNeedsDataAnalysis(e.target.checked)}
-            className="w-4 h-4 rounded border-[#dde6ef] text-[#5ba4d4] accent-[#5ba4d4] cursor-pointer"
-          />
-        </div>
+        <input
+          type="checkbox"
+          checked={needsDataAnalysis}
+          onChange={(e) => setNeedsDataAnalysis(e.target.checked)}
+          className="w-4 h-4 rounded border-[#dde6ef] text-[#5ba4d4] accent-[#5ba4d4] cursor-pointer"
+        />
         <span className="text-sm text-[#1a2332] group-hover:text-[#5ba4d4] transition-colors">
           需要进行数分
         </span>

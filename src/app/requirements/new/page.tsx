@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { ProtectedPage } from "@/components/layout/protected-page";
 import { RequirementForm } from "@/components/requirements/requirement-form";
 import { createClient } from "@/lib/supabase/client";
-import type { Product } from "@/types/database";
+import type { Product, UserRole } from "@/types/database";
 
 export default function NewRequirementPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -34,7 +34,7 @@ export default function NewRequirementPage() {
 
       type ProfileRow = {
         product_id: string | null;
-        role: "product" | "project_manager";
+        role: UserRole;
         products: { name: string } | null;
       };
       const prof = profile as ProfileRow | null;

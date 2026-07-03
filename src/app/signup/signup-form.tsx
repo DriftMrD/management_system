@@ -1,29 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { requiresProductSelection, type UserRole } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
-import { PRODUCT_OPTIONS } from "@/lib/products";
+
+type ProductOption = { id: string; code: string; name: string };
 
 export function SignupForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<"product" | "project_manager">("product");
-  const [productCode, setProductCode] = useState("");
+  const [role, setRole] = useState<UserRole>("product");
+  const [productId, setProductId] = useState("");
+  const [products, setProducts] = useState<ProductOption[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function loadProducts() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("products")
+        .select("id, code, name")
+        .order("name");
+      setProducts(data || []);
+    }
+
+    loadProducts();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
-    if (role === "product" && !productCode) {
-      setError("产品经理需要选择所属产品");
+    if (requiresProductSelection(role) && !productId) {
+      setError("需要选择所属产品");
       return;
     }
 
@@ -45,29 +61,12 @@ export function SignupForm() {
     }
 
     if (authData.user) {
-      let productId: string | null = null;
-
-      if (role === "product") {
-        const { data: product, error: productError } = await supabase
-          .from("products")
-          .select("id")
-          .eq("code", productCode)
-          .single();
-
-        if (productError || !product) {
-          setError("获取产品信息失败，请重试");
-          setLoading(false);
-          return;
-        }
-        productId = product.id;
-      }
-
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
           full_name: fullName,
           role,
-          product_id: productId,
+          product_id: requiresProductSelection(role) ? productId : null,
         })
         .eq("id", authData.user.id);
 
@@ -113,21 +112,22 @@ export function SignupForm() {
       <Select
         label="角色"
         value={role}
-        onChange={(e) => setRole(e.target.value as "product" | "project_manager")}
+        onChange={(e) => setRole(e.target.value as UserRole)}
         options={[
           { value: "product", label: "产品经理" },
+          { value: "developer", label: "研发" },
           { value: "project_manager", label: "项管" },
         ]}
       />
-      {role === "product" && (
+      {requiresProductSelection(role) && (
         <Select
           label="所属产品"
-          value={productCode}
-          onChange={(e) => setProductCode(e.target.value)}
+          value={productId}
+          onChange={(e) => setProductId(e.target.value)}
           required
           options={[
             { value: "", label: "请选择产品" },
-            ...PRODUCT_OPTIONS.map((p) => ({ value: p.code, label: p.name })),
+            ...products.map((p) => ({ value: p.id, label: p.name })),
           ]}
         />
       )}

@@ -10,8 +10,6 @@ import {
   isValid,
   endOfWeek,
   startOfWeek,
-  eachMonthOfInterval,
-  endOfMonth,
   isWithinInterval,
   isSameDay,
   isWeekend,
@@ -57,6 +55,7 @@ const ROW_HEIGHT = 48;
 const BAR_HEIGHT = 28;
 const MIN_PX_PER_DAY = 22;
 const MAX_PX_PER_DAY = 44;
+const HEADER_HEIGHT = 58;
 
 interface DayColumn {
   date: Date;
@@ -75,18 +74,12 @@ interface WeekGroup {
   label: string;
 }
 
-interface MonthGroup {
-  left: number;
-  width: number;
-  label: string;
-}
-
 function parseDate(value: string): Date | null {
   const d = parseISO(value);
   return isValid(d) ? d : null;
 }
 
-function getDateRange(rows: GanttRow[]): { start: Date; end: Date } | null {
+function getBarDateRange(rows: GanttRow[]): { start: Date; end: Date } | null {
   const dates: Date[] = [];
   for (const row of rows) {
     for (const bar of row.bars) {
@@ -101,6 +94,16 @@ function getDateRange(rows: GanttRow[]): { start: Date; end: Date } | null {
   const min = new Date(Math.min(...dates.map((d) => d.getTime())));
   const max = new Date(Math.max(...dates.map((d) => d.getTime())));
   return { start: addDays(min, -1), end: addDays(max, 1) };
+}
+
+function extendRangeToIncludeToday(
+  range: { start: Date; end: Date },
+  today: Date
+): { start: Date; end: Date } {
+  let { start, end } = range;
+  if (today < start) start = addDays(today, -1);
+  if (today > end) end = addDays(today, 1);
+  return { start, end };
 }
 
 function buildDayColumns(
@@ -156,26 +159,6 @@ function buildWeekGroups(
     cursor = addDays(weekEnd, 1);
   }
   return groups;
-}
-
-function buildMonthGroups(
-  range: { start: Date; end: Date },
-  pxPerDay: number
-): MonthGroup[] {
-  return eachMonthOfInterval({ start: range.start, end: range.end }).map(
-    (month) => {
-      const monthStart = month < range.start ? range.start : month;
-      const monthEnd = endOfMonth(month) > range.end ? range.end : endOfMonth(month);
-      const left = differenceInCalendarDays(monthStart, range.start) * pxPerDay;
-      const width =
-        (differenceInCalendarDays(monthEnd, monthStart) + 1) * pxPerDay;
-      return {
-        left,
-        width,
-        label: format(month, "yyyy年M月", { locale: zhCN }),
-      };
-    }
-  );
 }
 
 interface RenderRow {
@@ -292,36 +275,52 @@ export function GanttChart({
     [rowsWithBars, expandPhases]
   );
 
-  const range = useMemo(() => getDateRange(rowsWithBars), [rowsWithBars]);
+  const barRange = useMemo(() => getBarDateRange(rowsWithBars), [rowsWithBars]);
 
   const today = useMemo(() => new Date(), []);
+
+  const range = useMemo(
+    () => (barRange ? extendRangeToIncludeToday(barRange, today) : null),
+    [barRange, today]
+  );
+
   const totalDays = range
     ? differenceInCalendarDays(range.end, range.start) + 1
     : 0;
   const pxPerDay = computePxPerDay(totalDays || 1, containerWidth);
   const timelineWidth = totalDays * pxPerDay;
   const chartWidth = LABEL_WIDTH + timelineWidth;
-  const dayGranularity = totalDays <= 90;
+
+  const todayLeft = useMemo(() => {
+    if (!range) return null;
+    if (!isWithinInterval(today, { start: range.start, end: range.end })) {
+      return null;
+    }
+    return (
+      differenceInCalendarDays(today, range.start) * pxPerDay + pxPerDay / 2
+    );
+  }, [range, today, pxPerDay]);
+
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el || todayLeft === null || containerWidth <= 0) return;
+
+    const todayInContent = LABEL_WIDTH + todayLeft;
+    const targetScroll = todayInContent - containerWidth / 2;
+    const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
+    el.scrollLeft = Math.max(0, Math.min(targetScroll, maxScroll));
+  }, [todayLeft, containerWidth, timelineWidth, renderRows.length]);
 
   const dayColumns = useMemo(
-    () =>
-      range && dayGranularity
-        ? buildDayColumns(range, pxPerDay, today)
-        : [],
-    [range, pxPerDay, today, dayGranularity]
+    () => (range ? buildDayColumns(range, pxPerDay, today) : []),
+    [range, pxPerDay, today]
   );
   const weekGroups = useMemo(
-    () => (range && dayGranularity ? buildWeekGroups(range, pxPerDay) : []),
-    [range, pxPerDay, dayGranularity]
-  );
-  const monthGroups = useMemo(
-    () => (!range || dayGranularity ? [] : buildMonthGroups(range, pxPerDay)),
-    [range, pxPerDay, dayGranularity]
+    () => (range ? buildWeekGroups(range, pxPerDay) : []),
+    [range, pxPerDay]
   );
 
-  const headerHeight = dayGranularity ? 58 : 40;
-
-  if (rowsWithBars.length === 0 || !range) {
+  if (rowsWithBars.length === 0 || !barRange || !range) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <div className="text-4xl mb-3">📊</div>
@@ -331,11 +330,6 @@ export function GanttChart({
   }
 
   const dateRange = range;
-
-  const todayLeft =
-    isWithinInterval(today, { start: dateRange.start, end: dateRange.end })
-      ? differenceInCalendarDays(today, dateRange.start) * pxPerDay + pxPerDay / 2
-      : null;
 
   function barPos(startStr: string, endStr: string) {
     const start = parseDate(startStr);
@@ -382,73 +376,57 @@ export function GanttChart({
           >
             <div
               className="gantt-sticky-corner sticky top-0 left-0 z-30 flex items-end px-4 pb-2 text-xs font-medium text-[#7a96ae] border-r border-b border-[#edf3f8] bg-[#f8fbfd]"
-              style={{ height: headerHeight }}
+              style={{ height: HEADER_HEIGHT }}
             >
               需求 / 阶段
             </div>
 
             <div
               className="gantt-sticky-header sticky top-0 z-20 relative border-b border-[#edf3f8] bg-[#f8fbfd] overflow-hidden"
-              style={{ height: headerHeight, width: timelineWidth }}
+              style={{ height: HEADER_HEIGHT, width: timelineWidth }}
             >
-              {dayGranularity ? (
-                <>
-                  <div className="absolute top-0 left-0 right-0 h-[22px] border-b border-[#edf3f8]/80">
-                    {weekGroups.map((wg, i) => (
-                      <div
-                        key={i}
-                        className="absolute top-0 h-full flex items-center px-1.5 text-[10px] font-medium text-[#7a96ae] border-r border-[#edf3f8]/80 truncate"
-                        style={{ left: wg.left, width: wg.width }}
-                      >
-                        {wg.label}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="absolute top-[22px] left-0 right-0 bottom-0">
-                    {dayColumns.map((col) => (
-                      <div
-                        key={col.date.toISOString()}
-                        className={`absolute top-0 bottom-0 flex flex-col items-center justify-center border-r text-center leading-none ${
-                          col.isToday
-                            ? "bg-[#fdeaea] border-[#f0c0c0]/60"
-                            : col.isWeekend
-                              ? "bg-[#f4f7fa] border-[#edf3f8]/80"
-                              : "border-[#edf3f8]/80"
-                        }`}
-                        style={{ left: col.left, width: col.width }}
-                      >
-                        {col.showMonthLabel && pxPerDay >= 26 && (
-                          <span className="text-[9px] text-[#a0b4c4] -mt-0.5">
-                            {format(col.date, "M月")}
-                          </span>
-                        )}
-                        <span
-                          className={`text-[11px] font-semibold tabular-nums ${
-                            col.isToday ? "text-[#e06060]" : "text-[#1a2332]"
-                          }`}
-                        >
-                          {col.dayLabel}
-                        </span>
-                        {pxPerDay >= 20 && (
-                          <span className="text-[9px] text-[#a0b4c4] mt-0.5">
-                            {col.weekdayLabel}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                monthGroups.map((mg, i) => (
+              <div className="absolute top-0 left-0 right-0 h-[22px] border-b border-[#edf3f8]/80">
+                {weekGroups.map((wg, i) => (
                   <div
                     key={i}
-                    className="absolute top-0 h-full flex items-center px-2 text-xs font-medium text-[#7a96ae] border-r border-[#edf3f8]/80"
-                    style={{ left: mg.left, width: mg.width }}
+                    className="absolute top-0 h-full flex items-center px-1.5 text-[10px] font-medium text-[#7a96ae] border-r border-[#edf3f8]/80 truncate"
+                    style={{ left: wg.left, width: wg.width }}
                   >
-                    {mg.label}
+                    {wg.label}
                   </div>
-                ))
-              )}
+                ))}
+              </div>
+              <div className="absolute top-[22px] left-0 right-0 bottom-0">
+                {dayColumns.map((col) => (
+                  <div
+                    key={col.date.toISOString()}
+                    className={`absolute top-0 bottom-0 flex flex-col items-center justify-center border-r text-center leading-none ${
+                      col.isToday
+                        ? "bg-[#fdeaea] border-[#f0c0c0]/60"
+                        : col.isWeekend
+                          ? "bg-[#f4f7fa] border-[#edf3f8]/80"
+                          : "border-[#edf3f8]/80"
+                    }`}
+                    style={{ left: col.left, width: col.width }}
+                  >
+                    {col.showMonthLabel && (
+                      <span className="text-[9px] text-[#a0b4c4] -mt-0.5">
+                        {format(col.date, "M月")}
+                      </span>
+                    )}
+                    <span
+                      className={`text-[11px] font-semibold tabular-nums ${
+                        col.isToday ? "text-[#e06060]" : "text-[#1a2332]"
+                      }`}
+                    >
+                      {col.dayLabel}
+                    </span>
+                    <span className="text-[9px] text-[#a0b4c4] mt-0.5">
+                      {col.weekdayLabel}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {renderRows.map((row) => (
@@ -481,27 +459,19 @@ export function GanttChart({
                   className="relative border-b border-[#f0f4f8] z-0 overflow-hidden"
                   style={{ height: ROW_HEIGHT, width: timelineWidth }}
                 >
-                  {dayGranularity
-                    ? dayColumns.map((col) => (
-                        <div
-                          key={col.date.toISOString()}
-                          className={`absolute top-0 bottom-0 border-r pointer-events-none ${
-                            col.isToday
-                              ? "bg-[#fdeaea]/40 border-[#f0c0c0]/40"
-                              : col.isWeekend
-                                ? "bg-[#f4f7fa]/60 border-[#edf3f8]/90"
-                                : "border-[#edf3f8]/90"
-                          }`}
-                          style={{ left: col.left, width: col.width }}
-                        />
-                      ))
-                    : monthGroups.map((mg, i) => (
-                        <div
-                          key={i}
-                          className="absolute top-0 bottom-0 border-r border-[#edf3f8]/90 pointer-events-none"
-                          style={{ left: mg.left }}
-                        />
-                      ))}
+                  {dayColumns.map((col) => (
+                    <div
+                      key={col.date.toISOString()}
+                      className={`absolute top-0 bottom-0 border-r pointer-events-none ${
+                        col.isToday
+                          ? "bg-[#fdeaea]/40 border-[#f0c0c0]/40"
+                          : col.isWeekend
+                            ? "bg-[#f4f7fa]/60 border-[#edf3f8]/90"
+                            : "border-[#edf3f8]/90"
+                      }`}
+                      style={{ left: col.left, width: col.width }}
+                    />
+                  ))}
 
                   {todayLeft !== null && (
                     <div

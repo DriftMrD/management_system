@@ -88,11 +88,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   </div>
                 )}
                 {profile && (
-                  <div className="w-8 h-8 rounded-full bg-[#e8f3fb] flex items-center justify-center text-xs font-semibold text-[#5ba4d4] select-none">
+                  <Link
+                    href="/settings"
+                    title="账号设置"
+                    className="w-8 h-8 rounded-full bg-[#e8f3fb] flex items-center justify-center text-xs font-semibold text-[#5ba4d4] select-none hover:bg-[#d6ebf8] transition-colors"
+                  >
                     {(profile.full_name || profile.email || "?")
                       .charAt(0)
                       .toUpperCase()}
-                  </div>
+                  </Link>
                 )}
                 <LogoutButton />
               </div>
