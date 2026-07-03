@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/client";
-import { isProductScopedRole } from "@/types/database";
+import {
+  isProductScopedRole,
+  isStatusAfterDeveloperCutoff,
+  type RequirementStatus,
+} from "@/types/database";
 import type { RequirementFormData } from "@/types/database";
 
 export async function createRequirement(data: RequirementFormData) {
@@ -104,6 +108,41 @@ export async function updateRequirement(
     }
 
     data.product_id = productId;
+  }
+
+  if (data.status) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, product_id")
+      .eq("id", user.id)
+      .single();
+
+    const { data: requirement } = await supabase
+      .from("requirements")
+      .select("status, product_id")
+      .eq("id", id)
+      .single();
+
+    if (!requirement) return { error: "需求不存在" };
+
+    if (
+      profile?.role &&
+      isProductScopedRole(profile.role) &&
+      profile.product_id &&
+      requirement.product_id !== profile.product_id
+    ) {
+      return { error: "只能修改自己所属产品的需求" };
+    }
+
+    if (profile?.role === "developer") {
+      const nextStatus = data.status as RequirementStatus;
+      if (
+        !isStatusAfterDeveloperCutoff(requirement.status) ||
+        !isStatusAfterDeveloperCutoff(nextStatus)
+      ) {
+        return { error: "研发只能修改已排期及之后的需求进展" };
+      }
+    }
   }
 
   const { error } = await supabase

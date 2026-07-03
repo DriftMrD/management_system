@@ -26,6 +26,8 @@ import {
   PRIORITY_LABELS,
   REQUIREMENT_STATUS_LABELS,
   SCHEDULE_TYPE_LABELS,
+  getDeveloperEditableStatuses,
+  isStatusAfterDeveloperCutoff,
 } from "@/types/database";
 
 const DELIVERY_MONTHS = [
@@ -51,6 +53,29 @@ const STATUS_ORDER = Object.keys(
 ) as RequirementStatus[];
 
 type StatusCompareOp = "" | "gt" | "lt";
+
+const ROLE_FOCUS_FILTER: Partial<
+  Record<UserRole, { op: Exclude<StatusCompareOp, "">; value: RequirementStatus }>
+> = {
+  product: { op: "lt", value: "scheduled" },
+  developer: { op: "gt", value: "pending_schedule" },
+};
+
+function getInitialRoleFocusState(role: UserRole) {
+  const preset = ROLE_FOCUS_FILTER[role];
+  if (!preset) {
+    return {
+      productFocus: false,
+      statusCompareOp: "" as StatusCompareOp,
+      statusCompareValue: "",
+    };
+  }
+  return {
+    productFocus: true,
+    statusCompareOp: preset.op,
+    statusCompareValue: preset.value,
+  };
+}
 
 function statusIndex(status: RequirementStatus): number {
   return STATUS_ORDER.indexOf(status);
@@ -154,13 +179,18 @@ export function RequirementsList({
   userRole,
 }: RequirementsListProps) {
   const router = useRouter();
+  const initialFocus = getInitialRoleFocusState(userRole);
   const [items, setItems] = useState(requirements);
   const [search, setSearch] = useState("");
   const [productFilter, setProductFilter] = useState("");
-  const [statusCompareOp, setStatusCompareOp] = useState<StatusCompareOp>("");
-  const [statusCompareValue, setStatusCompareValue] = useState("");
+  const [statusCompareOp, setStatusCompareOp] = useState<StatusCompareOp>(
+    initialFocus.statusCompareOp
+  );
+  const [statusCompareValue, setStatusCompareValue] = useState(
+    initialFocus.statusCompareValue
+  );
   const [scheduleTypeFilter, setScheduleTypeFilter] = useState("");
-  const [productFocus, setProductFocus] = useState(false);
+  const [productFocus, setProductFocus] = useState(initialFocus.productFocus);
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [savingCell, setSavingCell] = useState<string | null>(null);
@@ -170,6 +200,8 @@ export function RequirementsList({
     setItems(requirements);
   }, [requirements]);
 
+  const roleFocusPreset = ROLE_FOCUS_FILTER[userRole];
+
   const hasActiveFilters = Boolean(
     search ||
       productFilter ||
@@ -178,8 +210,17 @@ export function RequirementsList({
       (statusCompareOp && statusCompareValue)
   );
 
-  const effectiveStatusOp = productFocus ? "lt" : statusCompareOp;
-  const effectiveStatusValue = productFocus ? "scheduled" : statusCompareValue;
+  const effectiveStatusOp =
+    productFocus && roleFocusPreset ? roleFocusPreset.op : statusCompareOp;
+  const effectiveStatusValue =
+    productFocus && roleFocusPreset
+      ? roleFocusPreset.value
+      : statusCompareValue;
+
+  function matchesRoleFocus(op: StatusCompareOp, value: string) {
+    if (!roleFocusPreset) return false;
+    return op === roleFocusPreset.op && value === roleFocusPreset.value;
+  }
 
   const filtered = items.filter((req) => {
     const q = search.toLowerCase();
@@ -245,6 +286,19 @@ export function RequirementsList({
       | "landing_version",
     value: PriorityLevel | RequirementStatus | ScheduleType | string | null
   ) {
+    if (field === "status" && userRole === "developer") {
+      const req = items.find((r) => r.id === id);
+      const nextStatus = value as RequirementStatus;
+      if (
+        !req ||
+        !isStatusAfterDeveloperCutoff(req.status) ||
+        !isStatusAfterDeveloperCutoff(nextStatus)
+      ) {
+        alert("研发只能修改已排期及之后的需求进展");
+        return;
+      }
+    }
+
     setSavingCell(`${id}:${field}`);
     const payload =
       field === "target_delivery_month" ||
@@ -281,12 +335,12 @@ export function RequirementsList({
 
   function toggleProductFocus(checked: boolean) {
     setProductFocus(checked);
-    if (checked) {
-      setStatusCompareOp("lt");
-      setStatusCompareValue("scheduled");
+    if (checked && roleFocusPreset) {
+      setStatusCompareOp(roleFocusPreset.op);
+      setStatusCompareValue(roleFocusPreset.value);
       return;
     }
-    if (statusCompareOp === "lt" && statusCompareValue === "scheduled") {
+    if (matchesRoleFocus(statusCompareOp, statusCompareValue)) {
       setStatusCompareOp("");
       setStatusCompareValue("");
     }
@@ -354,7 +408,7 @@ export function RequirementsList({
                     const op = value as StatusCompareOp;
                     setStatusCompareOp(op);
                     if (!op) setStatusCompareValue("");
-                    if (op !== "lt" || statusCompareValue !== "scheduled") {
+                    if (!matchesRoleFocus(op, statusCompareValue)) {
                       setProductFocus(false);
                     }
                   }}
@@ -368,7 +422,7 @@ export function RequirementsList({
                   value={statusCompareValue}
                   onChange={(value) => {
                     setStatusCompareValue(value);
-                    if (statusCompareOp !== "lt" || value !== "scheduled") {
+                    if (!matchesRoleFocus(statusCompareOp, value)) {
                       setProductFocus(false);
                     }
                   }}
@@ -511,6 +565,7 @@ export function RequirementsList({
                     key={req.id}
                     req={req}
                     isProjectManager={isProjectManager}
+                    userRole={userRole}
                     isSaving={isSaving}
                     onFieldChange={handleFieldChange}
                   />
@@ -542,6 +597,7 @@ export function RequirementsList({
                           key={req.id}
                           req={req}
                           isProjectManager={isProjectManager}
+                          userRole={userRole}
                           isSaving={isSaving}
                           onFieldChange={handleFieldChange}
                           muted
@@ -561,12 +617,14 @@ export function RequirementsList({
 function RequirementTableRow({
   req,
   isProjectManager,
+  userRole,
   isSaving,
   onFieldChange,
   muted = false,
 }: {
   req: Requirement & { products: Product | null };
   isProjectManager: boolean;
+  userRole: UserRole;
   isSaving: (id: string, field: string) => boolean;
   onFieldChange: (
     id: string,
@@ -580,6 +638,18 @@ function RequirementTableRow({
   ) => void;
   muted?: boolean;
 }) {
+  const isDeveloper = userRole === "developer";
+  const canEditStatus =
+    !isDeveloper || isStatusAfterDeveloperCutoff(req.status);
+  const statusOptions = (
+    isDeveloper && canEditStatus
+      ? getDeveloperEditableStatuses()
+      : (Object.keys(REQUIREMENT_STATUS_LABELS) as RequirementStatus[])
+  ).map((status) => ({
+    value: status,
+    label: REQUIREMENT_STATUS_LABELS[status],
+  }));
+
   return (
     <tr
       className={`transition-colors group ${
@@ -623,12 +693,9 @@ function RequirementTableRow({
       <td className="px-3 py-2">
         <BadgeSelect
           value={req.status}
-          disabled={isSaving(req.id, "status")}
+          disabled={!canEditStatus || isSaving(req.id, "status")}
           variant={requirementStatusVariant(req.status)}
-          options={Object.entries(REQUIREMENT_STATUS_LABELS).map(([v, l]) => ({
-            value: v as RequirementStatus,
-            label: l,
-          }))}
+          options={statusOptions}
           onChange={(status) => onFieldChange(req.id, "status", status)}
         />
       </td>

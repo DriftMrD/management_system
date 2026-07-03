@@ -114,6 +114,25 @@ export const REQUIREMENT_STATUS_LABELS: Record<RequirementStatus, string> = {
   cancelled: "已取消",
 };
 
+export const REQUIREMENT_STATUS_ORDER = Object.keys(
+  REQUIREMENT_STATUS_LABELS
+) as RequirementStatus[];
+
+const DEVELOPER_STATUS_CUTOFF: RequirementStatus = "pending_schedule";
+
+/** 进展是否晚于「待排期」（研发可编辑的范围） */
+export function isStatusAfterDeveloperCutoff(status: RequirementStatus): boolean {
+  return (
+    REQUIREMENT_STATUS_ORDER.indexOf(status) >
+    REQUIREMENT_STATUS_ORDER.indexOf(DEVELOPER_STATUS_CUTOFF)
+  );
+}
+
+export function getDeveloperEditableStatuses(): RequirementStatus[] {
+  const cutoffIdx = REQUIREMENT_STATUS_ORDER.indexOf(DEVELOPER_STATUS_CUTOFF);
+  return REQUIREMENT_STATUS_ORDER.slice(cutoffIdx + 1);
+}
+
 export const PRIORITY_LABELS: Record<PriorityLevel, string> = {
   P0: "P0",
   P1: "P1",
