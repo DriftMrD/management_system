@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { ProtectedPage } from "@/components/layout/protected-page";
+import { WorkSummaryCard } from "@/components/dashboard/work-summary-card";
 import { createClient } from "@/lib/supabase/client";
-import { REQUIREMENT_STATUS_LABELS } from "@/types/database";
+import { REQUIREMENT_STATUS_LABELS, type UserRole } from "@/types/database";
 
 type RequirementStats = {
   status: string;
@@ -13,6 +14,7 @@ type RequirementStats = {
 export default function DashboardPage() {
   const [requirements, setRequirements] = useState<RequirementStats[]>([]);
   const [subtitle, setSubtitle] = useState("数据汇总");
+  const [userRole, setUserRole] = useState<UserRole>("product");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,6 +38,7 @@ export default function DashboardPage() {
       const p = profile as ProfileRow | null;
 
       const productName = p?.products?.name ?? null;
+      if (p?.role) setUserRole(p.role as UserRole);
 
       setSubtitle(
         p?.role === "project_manager"
@@ -71,6 +74,8 @@ export default function DashboardPage() {
             <StatCard label="进行中" value={inProgress} color="#e8a43c" bg="#fef5e4" icon="🚀" />
             <StatCard label="P0 需求" value={p0Count} color="#e06060" bg="#fdeaea" icon="🔥" />
           </div>
+
+          {userRole === "product" && <WorkSummaryCard />}
 
           <div
             className="bg-white rounded-2xl p-6"
