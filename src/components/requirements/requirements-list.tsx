@@ -52,7 +52,7 @@ const STATUS_ORDER = Object.keys(
   REQUIREMENT_STATUS_LABELS
 ) as RequirementStatus[];
 
-type StatusCompareOp = "" | "gt" | "lt";
+type StatusCompareOp = "" | "gt" | "lt" | "eq";
 
 const ROLE_FOCUS_FILTER: Partial<
   Record<UserRole, { op: Exclude<StatusCompareOp, "">; value: RequirementStatus }>
@@ -92,6 +92,7 @@ function matchStatusCompare(
   if (reqIdx === -1 || valIdx === -1) return true;
   if (op === "gt") return reqIdx > valIdx;
   if (op === "lt") return reqIdx < valIdx;
+  if (op === "eq") return reqIdx === valIdx;
   return true;
 }
 const SCHEDULE_ORDER: Record<string, number> = { agile: 0, tos: 1 };
@@ -100,6 +101,47 @@ function monthOrder(value: string | null): number {
   if (!value) return 99;
   const n = parseInt(value, 10);
   return Number.isNaN(n) ? 99 : n;
+}
+
+function requirementSearchText(req: Requirement): string {
+  return [
+    req.title,
+    req.description,
+    req.sr_number,
+    req.supplementary_notes,
+    req.landing_version,
+  ]
+    .filter(Boolean)
+    .join("\n")
+    .toLowerCase();
+}
+
+function parseSearchQuery(query: string) {
+  const segments = query.split(/不包含/);
+  const includePart = segments[0]?.trim() ?? "";
+  const includeTerms = includePart ? [includePart] : [];
+  const excludeTerms = segments
+    .slice(1)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return { includeTerms, excludeTerms };
+}
+
+function matchSearchQuery(req: Requirement, query: string) {
+  const trimmed = query.trim();
+  if (!trimmed) return true;
+
+  const { includeTerms, excludeTerms } = parseSearchQuery(trimmed);
+  const text = requirementSearchText(req);
+
+  const matchInclude =
+    includeTerms.length === 0 ||
+    includeTerms.every((term) => text.includes(term.toLowerCase()));
+  const matchExclude = excludeTerms.every(
+    (term) => !text.includes(term.toLowerCase())
+  );
+
+  return matchInclude && matchExclude;
 }
 
 function compareScheduleType(
@@ -223,14 +265,7 @@ export function RequirementsList({
   }
 
   const filtered = items.filter((req) => {
-    const q = search.toLowerCase();
-    const matchSearch =
-      !q ||
-      req.title.toLowerCase().includes(q) ||
-      (req.description || "").toLowerCase().includes(q) ||
-      (req.sr_number || "").toLowerCase().includes(q) ||
-      (req.supplementary_notes || "").toLowerCase().includes(q) ||
-      (req.landing_version || "").toLowerCase().includes(q);
+    const matchSearch = matchSearchQuery(req, search);
     const matchProduct = !productFilter || req.product_id === productFilter;
     const matchStatus = matchStatusCompare(
       req.status,
@@ -377,7 +412,7 @@ export function RequirementsList({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜索需求描述、编号、落地版本..."
+            placeholder="搜索需求描述、编号、落地版本… 排除用「不包含」，如：不包含 RR"
             className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-[#dde6ef] bg-[#f8fbfd] text-[#1a2332] placeholder:text-[#a0b4c4] focus:border-[#5ba4d4] focus:outline-none focus:ring-3 focus:ring-[#5ba4d4]/12 transition-all"
           />
         </div>
@@ -416,6 +451,7 @@ export function RequirementsList({
                     { value: "", label: "不限" },
                     { value: "gt", label: ">" },
                     { value: "lt", label: "<" },
+                    { value: "eq", label: "=" },
                   ]}
                 />
                 <FilterSelect
@@ -501,10 +537,20 @@ export function RequirementsList({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full table-fixed text-sm">
+              <colgroup>
+                <col style={{ width: "500px" }} />
+                {isProjectManager && <col style={{ width: "96px" }} />}
+                <col />
+                <col />
+                <col />
+                <col />
+                <col />
+                <col style={{ width: "88px" }} />
+              </colgroup>
               <thead>
                 <tr className="border-b border-[#edf3f8] bg-[#f8fbfd]">
-                  <th className="px-3 py-2.5 font-medium text-[#7a96ae] text-left">
+                  <th className="px-3 py-2.5 font-medium text-[#7a96ae] text-left w-[500px]">
                     需求描述
                   </th>
                   {isProjectManager && (
@@ -536,7 +582,6 @@ export function RequirementsList({
                     activeKey={sortKey}
                     direction={sortDir}
                     onSort={handleSort}
-                    className="min-w-[100px]"
                   />
                   <SortableHeader
                     label="目标交付月"
@@ -544,7 +589,6 @@ export function RequirementsList({
                     activeKey={sortKey}
                     direction={sortDir}
                     onSort={handleSort}
-                    className="min-w-[88px]"
                   />
                   <SortableHeader
                     label="落地版本"
@@ -552,9 +596,8 @@ export function RequirementsList({
                     activeKey={sortKey}
                     direction={sortDir}
                     onSort={handleSort}
-                    className="min-w-[120px]"
                   />
-                  <th className="px-3 py-2.5 font-medium text-[#7a96ae] text-right">
+                  <th className="px-3 py-2.5 font-medium text-[#7a96ae] text-right w-[88px]">
                     操作
                   </th>
                 </tr>
@@ -658,27 +701,28 @@ function RequirementTableRow({
           : "hover:bg-[#f8fbfd]"
       }`}
     >
-      <td className="px-3 py-2">
+      <td className="px-3 py-2 w-[500px] max-w-[500px] align-top">
         <Link
           href={`/requirements/detail?id=${req.id}`}
-          className={`font-medium hover:text-[#5ba4d4] transition-colors ${
+          title={req.title}
+          className={`block truncate font-medium hover:text-[#5ba4d4] transition-colors ${
             muted ? "text-[#5a6f80]" : "text-[#1a2332]"
           }`}
         >
           {req.title}
         </Link>
         {req.sr_number && (
-          <p className="text-xs text-[#a0b4c4] mt-0.5 font-mono">
+          <p className="text-xs text-[#a0b4c4] mt-0.5 font-mono truncate" title={req.sr_number}>
             {req.sr_number}
           </p>
         )}
       </td>
       {isProjectManager && (
-        <td className="px-3 py-2">
+        <td className="px-3 py-2 whitespace-nowrap">
           <Badge variant="primary">{req.products?.name}</Badge>
         </td>
       )}
-      <td className="px-3 py-2">
+      <td className="px-3 py-2 whitespace-nowrap">
         <BadgeSelect
           value={req.priority}
           disabled={isSaving(req.id, "priority")}
@@ -690,7 +734,7 @@ function RequirementTableRow({
           onChange={(priority) => onFieldChange(req.id, "priority", priority)}
         />
       </td>
-      <td className="px-3 py-2">
+      <td className="px-3 py-2 whitespace-nowrap">
         <BadgeSelect
           value={req.status}
           disabled={!canEditStatus || isSaving(req.id, "status")}
@@ -699,7 +743,7 @@ function RequirementTableRow({
           onChange={(status) => onFieldChange(req.id, "status", status)}
         />
       </td>
-      <td className="px-3 py-2">
+      <td className="px-3 py-2 whitespace-nowrap">
         <BadgeSelect
           value={req.schedule_type || ""}
           disabled={isSaving(req.id, "schedule_type")}
@@ -716,7 +760,7 @@ function RequirementTableRow({
           }
         />
       </td>
-      <td className="px-3 py-2">
+      <td className="px-3 py-2 whitespace-nowrap">
         <BadgeSelect
           value={req.target_delivery_month || ""}
           disabled={isSaving(req.id, "target_delivery_month")}
@@ -730,14 +774,14 @@ function RequirementTableRow({
           }
         />
       </td>
-      <td className="px-3 py-2">
+      <td className="px-3 py-2 whitespace-nowrap">
         <LandingVersionCell
           value={req.landing_version || ""}
           disabled={isSaving(req.id, "landing_version")}
           onSave={(value) => onFieldChange(req.id, "landing_version", value)}
         />
       </td>
-      <td className="px-3 py-2">
+      <td className="px-3 py-2 w-[88px] whitespace-nowrap">
         <div className="flex items-center justify-end gap-1">
           <Link
             href={`/requirements/detail?id=${req.id}`}
