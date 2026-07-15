@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,12 @@ import { Input } from "@/components/ui/input";
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const resetSuccess = searchParams.get("reset") === "1";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,15 +49,31 @@ export function LoginForm() {
         required
         autoComplete="email"
       />
-      <Input
-        label="密码"
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="••••••••"
-        required
-        autoComplete="current-password"
-      />
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-medium text-[#1a2332]">密码</label>
+          <Link
+            href="/forgot-password"
+            className="text-xs text-[#5ba4d4] hover:text-[#4990c4] font-medium transition-colors"
+          >
+            忘记密码？
+          </Link>
+        </div>
+        <Input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="••••••••"
+          required
+          autoComplete="current-password"
+        />
+      </div>
+      {resetSuccess && (
+        <div className="flex items-start gap-2 text-sm text-[#4db896] bg-[#e8f8f2] rounded-xl px-3.5 py-2.5">
+          <span className="mt-0.5 shrink-0">✓</span>
+          <span>密码已重置，请使用新密码登录</span>
+        </div>
+      )}
       {error && (
         <div className="flex items-start gap-2 text-sm text-[#e06060] bg-[#fdeaea] rounded-xl px-3.5 py-2.5">
           <span className="mt-0.5 shrink-0">⚠</span>

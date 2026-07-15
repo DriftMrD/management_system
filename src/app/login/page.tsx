@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { LoginForm } from "./login-form";
 import { ClipboardList } from "lucide-react";
 import { GuestGuard } from "@/components/auth/auth-guard";
@@ -34,7 +35,9 @@ export default function LoginPage() {
           className="bg-white rounded-2xl p-7"
           style={{ boxShadow: "0 8px 32px 0 rgb(90 140 180 / 0.12), 0 2px 8px 0 rgb(90 140 180 / 0.08)" }}
         >
-          <LoginForm />
+          <Suspense fallback={<p className="text-sm text-[#7a96ae]">加载中...</p>}>
+            <LoginForm />
+          </Suspense>
         </div>
 
         {/* 底部装饰 */}
